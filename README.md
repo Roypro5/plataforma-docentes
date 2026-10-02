@@ -51,7 +51,9 @@ No hay secretos de servidor requeridos en etapa 1. No subir `.env` ni claves. No
 
 Lint, TypeScript, build y tres pruebas unitarias pasaron localmente. Las capturas se revisaron en escritorio y a 360 px.
 
-CI está en `.github/workflows/foundation.yml`; su resultado remoto debe comprobarse en GitHub Actions. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales. Las pruebas SQL/RLS y humo/axe están preparadas: no se afirma que hayan pasado antes de la ejecución remota.
+El workflow CI está preparado en el workspace original como `.github/workflows/foundation.yml`, pero **no pudo subirse a GitHub por falta de acceso a workflows en la integración**. El propietario debe añadir ese archivo desde el workspace mediante GitHub o una credencial autorizada para workflows. No hay CI remoto habilitado por esta carga ni resultado verde verificado.
+
+Cuando esté añadido, su resultado debe comprobarse en GitHub Actions. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales. Las pruebas SQL/RLS y humo/axe están preparadas: no se afirma que hayan pasado antes de la ejecución remota.
 
 La etapa 1 no está cerrada: pendientes staging verificado, dos proyectos Supabase Free, recepción de errores Sentry y CI remoto.
 

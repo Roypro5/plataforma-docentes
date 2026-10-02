@@ -43,6 +43,8 @@ Archivo `.github/workflows/foundation.yml`:
 
 **No hay URL de ejecución ni resultado remoto verde.** Las pruebas de humo/axe y el harness SQL/RLS están escritos, pero no se ejecutaron en este primer build. El harness no representa las políticas del producto: esas pertenecen a etapa 2.
 
+**Carga al repositorio:** código y documentación subidos a la rama `main`. El workflow permanece en el workspace: la conexión GitHub permite subir código, pero las operaciones sobre workflows fueron rechazadas. El propietario debe añadir `.github/workflows/foundation.yml` con acceso autorizado antes de ejecutar y verificar CI remoto.
+
 ## Pendientes para cerrar etapa 1
 
 | Requisito | Estado |
