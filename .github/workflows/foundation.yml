@@ -1,0 +1,48 @@
+name: Foundation CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: docente_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ephemeral_ci_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @workspace/docente lint
+      - run: pnpm --filter @workspace/docente typecheck
+      - run: pnpm --filter @workspace/docente test
+      - run: pnpm --filter @workspace/docente test:rls
+        env:
+          EPHEMERAL_DATABASE_URL: postgres://postgres:ephemeral_ci_only@127.0.0.1:5432/docente_ci
+      - run: pnpm --filter @workspace/docente build
+      - run: pnpm --filter @workspace/docente exec playwright install --with-deps chromium
+      - run: pnpm --filter @workspace/docente test:smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report
+          path: artifacts/docente/playwright-report
+          retention-days: 7
