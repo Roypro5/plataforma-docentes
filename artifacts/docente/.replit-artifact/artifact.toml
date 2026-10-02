@@ -1,0 +1,23 @@
+kind = "web"
+previewPath = "/"
+title = "[NOMBRE] · Plataforma docente"
+description = "Base Next.js de la plataforma docente. Etapa 1, sin cuentas ni cobros."
+version = "1.0.0"
+id = "artifacts/docente"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/", "/_next" ]
+localPort = 18369
+
+[services.development]
+run = "pnpm --filter @workspace/docente run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/docente", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/docente", "run", "serve" ]
+
+[services.env]
+PORT = "18369"
+BASE_PATH = "/"

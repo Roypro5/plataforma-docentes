@@ -1,0 +1,8 @@
+.next/
+out/
+playwright-report/
+test-results/
+coverage/
+.env*
+!.env.example
+*.tsbuildinfo
