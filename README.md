@@ -6,7 +6,7 @@ Base de la etapa 1 para docentes peruanos. Next.js App Router, TypeScript y Tail
 
 Solo etapa 1 autorizada. No hay cuentas, pagos ni datos del producto. No avanzar a etapa 2 sin demo, reporte de CI y aprobación del propietario.
 
-Desarrollo y staging: servicios gratuitos. El propietario confirmó Vercel Hobby y conectará este repositorio mediante la integración GitHub de Vercel. No usar la API de Vercel ni contratar servicios pagados.
+Desarrollo y staging: servicios gratuitos. El propietario desplegó staging en Vercel Hobby: https://plataforma-docentesstaging.vercel.app/. No usar la API de Vercel ni contratar servicios pagados.
 
 ## Ejecutar
 
@@ -53,9 +53,9 @@ Lint, TypeScript, build y tres pruebas unitarias pasaron localmente. Las captura
 
 El propietario añadió el workflow `.github/workflows/foundation.yml` al remoto. La ejecución inicial pasó las comprobaciones previas y detectó fallos de contraste y ancho móvil en humo. Estos se corrigieron en la interfaz: los dos proyectos Playwright pasan localmente, sin cambiar la prueba ni el workflow. Ver [reporte de corrección](docs/reports/correccion-smoke-accesibilidad.md).
 
-La nueva ejecución remota debe comprobarse en GitHub Actions; los resultados locales no prueban por sí solos CI verde. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
+El [CI del arreglo](https://github.com/Roypro5/plataforma-docentes/actions/runs/37080506638) terminó con éxito: lint, TypeScript, unitarias, harness SQL/RLS, build y humo/axe aprobados. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
 
-La etapa 1 no está cerrada: pendientes staging verificado, dos proyectos Supabase Free, recepción de errores Sentry y CI remoto.
+Staging y CI remoto verificados. Sentry aceptó un error sintético desde staging (HTTP 200); su aparición en Issues y los dos proyectos Supabase Free siguen pendientes de confirmación. Ver detalles en el reporte y runbook. No iniciar etapa 2 sin aprobación.
 
 Documentación:
 

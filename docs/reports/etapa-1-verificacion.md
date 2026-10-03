@@ -1,9 +1,13 @@
 # Etapa 1 — Demo y reporte de verificación
 
 **Fecha:** 02/10/2026  
-**Estado:** base local implementada; etapa 1 **no cerrada**, pendiente de servicios externos y CI remoto. No se ha iniciado etapa 2.
+**Estado:** demo de staging y CI remoto aprobados; cierre formal pendiente de confirmaciones externas indicadas abajo. No se ha iniciado etapa 2.
 
 ## Demo disponible
+
+**Demo pública:** https://plataforma-docentesstaging.vercel.app/
+
+Proyecto Vercel `plataforma-docentes.staging`, equipo Hobby, rama `main`, Root Directory `artifacts/docente`. Despliegue realizado por el propietario y comprobado sobre su URL pública; no se utilizó la API de Vercel.
 
 - Inicio: visión y alcance explícito de la etapa 1.
 - Sistema visual: paleta, tipografía, botones, controles y validación local sin guardar datos.
@@ -30,7 +34,11 @@ Las capturas no prueban interacciones, lectura de pantalla ni accesibilidad WCAG
 
 En la primera captura aparecieron errores del WebSocket de recarga de desarrollo y del icono. Se añadió ruta explícita `/_next` al servicio e icono propio. El icono devuelve 200. La reconexión WebSocket no se ha comprobado mediante una interacción de navegador; la navegación HTTP y el render inicial funcionan.
 
-## CI preparado, todavía no ejecutado remotamente
+## CI remoto aprobado
+
+**Ejecución:** https://github.com/Roypro5/plataforma-docentes/actions/runs/37080506638  
+**Commit de aplicación:** `bf8b3a4b5cbd9ce0ee7839a5eeb71363b7b0f9f0`  
+**Resultado consultado:** `completed / success`, job `foundation`, todas las comprobaciones indicadas abajo aprobadas.
 
 Archivo `.github/workflows/foundation.yml`:
 
@@ -41,21 +49,32 @@ Archivo `.github/workflows/foundation.yml`:
 5. Humo Playwright con axe en escritorio y móvil.
 6. Reporte HTML de humo como artefacto de CI.
 
-**No hay URL de ejecución ni resultado remoto verde.** Las pruebas de humo/axe y el harness SQL/RLS están escritos, pero no se ejecutaron en este primer build. El harness no representa las políticas del producto: esas pertenecen a etapa 2.
+El harness no representa las políticas del producto: esas pertenecen a etapa 2. El reporte de humo fue cargado como artefacto de GitHub Actions.
 
-**Carga al repositorio:** código y documentación subidos a la rama `main`. El workflow permanece en el workspace: la conexión GitHub permite subir código, pero las operaciones sobre workflows fueron rechazadas. El propietario debe añadir `.github/workflows/foundation.yml` con acceso autorizado antes de ejecutar y verificar CI remoto.
+**Carga al repositorio:** código y documentación subidos a `main`; el propietario añadió el workflow. La primera ejecución encontró fallos de contraste/ancho, corregidos sin modificar la prueba ni el workflow. La ejecución enlazada confirma el arreglo remotamente.
+
+## Verificación del despliegue
+
+- Las cuatro rutas responden HTTP 200.
+- Escritorio (1280 px) y móvil (360 px): un `h1`, idioma `es-PE`, sin desbordamiento horizontal y cero violaciones en el análisis axe WCAG 2 A/AA y 2.1 AA de cada ruta.
+- `noindex, nofollow` presente; no equivale a un sitio privado.
+- Captura visual de inicio revisada sobre la URL real de staging.
+- Error sintético emitido por el navegador del staging: ingestión Sentry HTTP 200, entorno `staging`, Event ID `1f8cfc95da1e4b708749e02280ef786d`, sin usuario, petición, contexto ni tags. Aparición en Issues pendiente de acceso de lectura.
+
+Estos resultados no certifican accesibilidad completa ni confirman la configuración interna del panel Vercel. No se cambió código ni se creó un endpoint público para provocar errores.
 
 ## Pendientes para cerrar etapa 1
 
 | Requisito | Estado |
 |---|---|
-| Vercel Hobby staging | Hobby confirmado por el propietario; despliegue pendiente vía integración GitHub que conectará el propietario. No usar la API de Vercel |
+| Vercel Hobby staging | URL y funcionamiento verificados. No se usó la API de Vercel |
 | Dos proyectos Supabase Free independientes | Pendiente de configurar/verificar proyectos y acceso seguro; no se usa otra base como sustituto |
-| Sentry Free | SDK y filtro preparados, sin DSN ni entrega al proveedor verificada |
-| CI remoto | Workflow preparado; pendiente de repositorio autorizado y ejecución en cuota gratuita |
-| Prueba de humo con axe | Pendiente de ejecución; no afirmar WCAG AA certificado |
+| Sentry | DSN configurado por el propietario; evento aceptado HTTP 200. Lectura en Issues y plan Free no inspeccionados |
+| CI remoto | Aprobado; ejecución enlazada arriba |
+| Prueba de humo con axe | Aprobada en CI y análisis de las cuatro rutas desplegadas a 1280/360 px; no es certificación WCAG |
+| Revisión del propietario en celular | Resultado sin confirmar; no convertir el texto de plantilla en aprobación |
 
-No se contrató ningún servicio pagado, se creó infraestructura de producción ni se publicaron cuentas/credenciales. La vista previa no se presenta como un despliegue Vercel.
+No se contrató ningún servicio pagado ni se creó infraestructura de producción real del producto. No se publicaron cuentas/credenciales. La demo enlazada sí es el staging Vercel, no la vista previa local.
 
 ## Ajustes del usuario incorporados
 
@@ -67,4 +86,12 @@ No se contrató ningún servicio pagado, se creó infraestructura de producción
 - El manifiesto del catálogo exigirá URL exacta del archivo oficial; no se ha importado ningún padrón.
 - Lista objetivo: 26 tablas, ninguna implementada todavía.
 
-**Siguiente acción:** conectar los servicios gratuitos necesarios y completar las verificaciones pendientes de etapa 1. No avanzar a etapa 2.
+## Qué se necesita del propietario para etapa 2
+
+1. Aprobación explícita tras revisar esta demo, el CI y los pendientes de cierre.
+2. Confirmación de dos proyectos Supabase Free independientes (desarrollo y staging), dentro del límite gratuito; URLs y configuración mediante canales seguros, no claves por chat.
+3. Preparar correo y Google en Supabase Auth y sus URLs autorizadas; cualquier credencial se carga en el gestor seguro correspondiente.
+4. Identidad verificada del superadmin, sin asignar roles privilegiados antes de verificarla; mantener MFA para administración.
+5. Validar responsable de datos, canal de soporte y textos mínimos de consentimiento antes de habilitar registros y capturar perfiles.
+
+El alcance ya aprobado de etapa 2 sigue siendo Auth, perfil, onboarding y esquema institucional/RLS con pruebas negativas. No se añadieron tablas, cuentas ni políticas del producto en esta verificación.
