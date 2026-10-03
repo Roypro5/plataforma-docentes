@@ -397,6 +397,269 @@ try {
     await q("SELECT public.request_account_deletion()");
     await q("SELECT public.perform_account_deletion()");
   });
+
+  // --- Etapa 3: módulos, interés, avisos, notificaciones y actividad. ---
+  // Owner-only helpers: call them before switching role inside a test.
+  const setCountry = (userId, code) => q("UPDATE profiles SET country_code = $2 WHERE user_id = $1", [userId, code]);
+  const addTestCountry = () => q("INSERT INTO countries (code, name, currency, locale, time_zone) VALUES ('ZZ', 'País sintético', 'PEN', 'es-PE', 'America/Lima')");
+  const myModules = async () => (await q("SELECT module_id, access, interested FROM public.list_my_modules()")).rows;
+  const accessOf = (rows) => Object.fromEntries(rows.map((r) => [r.module_id, r.access]));
+  const future = ["generador-ia", "biblioteca", "marketplace", "cursos-simulacros"];
+
+  await test("modules: coming_soon listed, demo requires entitlement, hidden and unavailable country excluded", async () => {
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    let rows = await myModules();
+    assert(JSON.stringify(rows.map((r) => r.module_id)) === JSON.stringify([...future, "demo"]), `unexpected modules ${rows.map((r) => r.module_id)}`);
+    for (const id of future) assert(accessOf(rows)[id] === "coming_soon", `${id} not coming_soon`);
+    assert(accessOf(rows).demo === "requires_entitlement", "demo must require entitlement");
+    assert(rows.every((r) => r.interested === false), "no interest expected yet");
+    assert(await count("SELECT 1 FROM entitlements WHERE code = 'demo.access'") === 1, "entitlement not readable");
+    await expectError("UPDATE modules SET status = 'active'");
+    await expectError("INSERT INTO module_availability (module_id, country_code) VALUES ('demo', 'PE')");
+    await expectError("DELETE FROM entitlements");
+    await q("RESET ROLE");
+    await q("UPDATE modules SET status = 'hidden' WHERE id = 'biblioteca'");
+    await q("UPDATE modules SET emergency_disabled = true WHERE id = 'generador-ia'");
+    await as(ids.a);
+    rows = await myModules();
+    assert(!rows.some((r) => r.module_id === "biblioteca"), "hidden module listed");
+    assert(await count("SELECT 1 FROM modules WHERE id = 'biblioteca'") === 0, "hidden module readable");
+    assert(accessOf(rows)["generador-ia"] === "disabled", "emergency_disabled must be disabled");
+    await q("RESET ROLE");
+    await addTestCountry();
+    await setCountry(ids.a, "ZZ");
+    await as(ids.a);
+    assert((await myModules()).length === 0, "modules listed for a country without availability");
+    await as(ids.director); // profile without country
+    assert((await myModules()).length === 0, "modules listed without profile country");
+  });
+
+  await test("modules: resolver order and entitlements stay closed until stage 5", async () => {
+    await q("INSERT INTO modules (id, status, implementation_available, sort_order) VALUES ('prueba-activo', 'active', true, 60), ('prueba-sin-impl', 'active', false, 70)");
+    await q("INSERT INTO module_availability (module_id, country_code) VALUES ('prueba-activo', 'PE'), ('prueba-sin-impl', 'PE')");
+    await q("UPDATE modules SET emergency_disabled = true, status = 'coming_soon' WHERE id = 'marketplace'");
+    assert((await q("SELECT app_private.has_entitlement('demo.access') AS v")).rows[0].v === false, "has_entitlement must be false");
+    assert((await q("SELECT app_private.current_plan_code() AS v")).rows[0].v === "gratis", "plan must be gratis");
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    let access = accessOf(await myModules());
+    assert(access["prueba-activo"] === "available", "active + implemented must be available");
+    assert(access["prueba-sin-impl"] === "coming_soon", "active without implementation must be coming_soon");
+    assert(access.marketplace === "disabled", "disabled must win over coming_soon");
+    await expectError("SELECT public.register_module_interest('prueba-activo')");
+    await expectError("SELECT public.register_module_interest('demo')");
+    await expectError("SELECT public.register_module_interest('marketplace')");
+    await expectError("SELECT public.register_module_interest('no-existe')");
+    await q("RESET ROLE");
+    await q("UPDATE modules SET implementation_available = false WHERE id = 'demo'");
+    await as(ids.a);
+    assert(accessOf(await myModules()).demo === "requires_entitlement", "entitlement check must precede implementation");
+    await q("RESET ROLE");
+    await q("UPDATE modules SET emergency_disabled = true WHERE id = 'demo'");
+    await as(ids.a);
+    access = accessOf(await myModules());
+    assert(access.demo === "disabled", "disabled demo must be disabled");
+    assert(!Object.values(access).includes("hidden"), "hidden must never be listed");
+  });
+
+  await test("interest: own, idempotent, withdrawable and recorded as activity", async () => {
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    await q("SELECT public.register_module_interest('biblioteca')");
+    await q("SELECT public.register_module_interest('biblioteca')");
+    const { rows } = await q("SELECT user_id, country_code FROM module_interests");
+    assert(rows.length === 1 && rows[0].user_id === ids.a && rows[0].country_code === "PE", "interest not registered once with profile country");
+    assert((await myModules()).find((r) => r.module_id === "biblioteca").interested === true, "interested flag missing");
+    await q("SELECT public.withdraw_module_interest('biblioteca')");
+    await q("SELECT public.withdraw_module_interest('biblioteca')");
+    assert(await count("SELECT 1 FROM module_interests") === 0, "interest not withdrawn");
+    await q("RESET ROLE");
+    const kinds = (await q("SELECT kind FROM activity_events WHERE user_id = $1 AND module_id = 'biblioteca' ORDER BY id", [ids.a])).rows.map((r) => r.kind);
+    assert(JSON.stringify(kinds) === JSON.stringify(["module.interest_added", "module.interest_removed"]), `activity ${kinds}`);
+  });
+
+  await test("interest: others' rows invisible and undeletable; direct insert only own and coming_soon", async () => {
+    await setCountry(ids.a, "PE");
+    await setCountry(ids.b, "PE");
+    await as(ids.b);
+    await q("SELECT public.register_module_interest('marketplace')");
+    await as(ids.a);
+    assert(await count("SELECT 1 FROM module_interests") === 0, "A sees B interest");
+    assert(await count("DELETE FROM module_interests WHERE user_id = $1", [ids.b]) === 0, "A deleted B interest");
+    await q("SELECT public.withdraw_module_interest('marketplace')");
+    await expectError("INSERT INTO module_interests (user_id, module_id) VALUES ($1, 'biblioteca')", [ids.b]);
+    await expectError("INSERT INTO module_interests (user_id, module_id) VALUES ($1, 'demo')", [ids.a]);
+    await expectError("INSERT INTO module_interests (user_id, module_id, country_code) VALUES ($1, 'biblioteca', 'PE')", [ids.a]);
+    await q("INSERT INTO module_interests (user_id, module_id) VALUES ($1, 'biblioteca')", [ids.a]);
+    await expectError("UPDATE module_interests SET module_id = 'marketplace'");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM module_interests WHERE user_id = $1 AND module_id = 'marketplace'", [ids.b]) === 1, "B interest lost");
+    await q("UPDATE modules SET emergency_disabled = true WHERE id = 'cursos-simulacros'");
+    await as(ids.a);
+    await expectError("INSERT INTO module_interests (user_id, module_id) VALUES ($1, 'cursos-simulacros')", [ids.a]);
+  });
+
+  await test("suspended: no modules, interests, announcements, notifications or activity", async () => {
+    await setCountry(ids.suspended, "PE");
+    await q("INSERT INTO module_interests (user_id, module_id) VALUES ($1, 'biblioteca')", [ids.suspended]);
+    await q("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', '/panel', 'welcome')", [ids.suspended]);
+    await as(ids.suspended);
+    assert((await myModules()).length === 0, "suspended lists modules");
+    assert(await count("SELECT 1 FROM module_interests") === 0, "suspended reads interests");
+    assert(await count("DELETE FROM module_interests") === 0, "suspended deletes interests");
+    assert(await count("SELECT 1 FROM announcements") === 0, "suspended reads announcements");
+    assert(await count("SELECT 1 FROM notifications") === 0, "suspended reads notifications");
+    await expectError("SELECT public.register_module_interest('marketplace')");
+    await expectError("SELECT public.withdraw_module_interest('biblioteca')");
+    await expectError("SELECT public.mark_notifications_read()");
+    await expectError("SELECT public.record_session_started()");
+  });
+
+  await test("anon: no access to stage-3 tables or RPCs", async () => {
+    await asAnon();
+    for (const table of ["modules", "entitlements", "module_availability", "module_interests", "announcements", "notifications", "activity_events"]) {
+      await expectError(`SELECT 1 FROM public.${table}`);
+    }
+    for (const call of ["public.list_my_modules()", "public.register_module_interest('biblioteca')", "public.withdraw_module_interest('biblioteca')", "public.mark_notifications_read()", "public.record_session_started()", "app_private.module_access('biblioteca')"]) {
+      await expectError(`SELECT ${call}`);
+    }
+  });
+
+  await test("announcements: visible only when published, current and matching country, role and plan", async () => {
+    await addTestCountry();
+    await q(`INSERT INTO announcements (title, body, status, starts_at, ends_at, country_codes, role_codes, plan_codes) VALUES
+      ('Visible PE', 'x', 'published', now() - interval '1 day', null, '{PE}', '{}', '{}'),
+      ('Solo ZZ', 'x', 'published', now() - interval '1 day', null, '{ZZ}', '{}', '{}'),
+      ('Solo admin', 'x', 'published', now() - interval '1 day', null, '{}', '{admin}', '{}'),
+      ('Docente', 'x', 'published', now() - interval '1 day', null, '{}', '{docente}', '{}'),
+      ('Plan gratis', 'x', 'published', now() - interval '1 day', null, '{}', '{}', '{gratis}'),
+      ('Plan individual', 'x', 'published', now() - interval '1 day', null, '{}', '{}', '{individual,institucional}'),
+      ('PE y admin', 'x', 'published', now() - interval '1 day', null, '{PE}', '{admin}', '{}'),
+      ('Borrador', 'x', 'draft', now() - interval '1 day', null, '{}', '{}', '{}'),
+      ('Vencido', 'x', 'published', now() - interval '2 days', now() - interval '1 day', '{}', '{}', '{}'),
+      ('Futuro', 'x', 'published', now() + interval '1 day', null, '{}', '{}', '{}'),
+      ('Vigente con fin', 'x', 'published', now() - interval '1 day', now() + interval '1 day', '{}', '{}', '{}')`);
+    await setCountry(ids.a, "PE");
+    const titles = async () => (await q("SELECT title FROM announcements ORDER BY title")).rows.map((r) => r.title).join("|");
+    await as(ids.a);
+    const forA = ["Aviso de prueba", "Docente", "Plan gratis", "Vigente con fin", "Visible PE"].sort().join("|");
+    assert(await titles() === forA, `docente PE sees ${await titles()}`);
+    await expectError("INSERT INTO announcements (title, body, status) VALUES ('x', 'y', 'published')");
+    await expectError("UPDATE announcements SET status = 'draft'");
+    await expectError("DELETE FROM announcements");
+    await as(ids.admin); // roles docente + admin, profile without country
+    const forAdmin = ["Aviso de prueba", "Docente", "Plan gratis", "Solo admin", "Vigente con fin"].sort().join("|");
+    assert(await titles() === forAdmin, `admin without country sees ${await titles()}`);
+    await q("RESET ROLE");
+    await setCountry(ids.admin, "PE");
+    await as(ids.admin);
+    assert((await titles()).includes("PE y admin"), "AND of country and role not satisfied for admin PE");
+  });
+
+  await test("announcements: invalid audience, dates, status and text are rejected", async () => {
+    const insert = (cols, vals) => `INSERT INTO announcements (title, body${cols}) VALUES ('t', 'b'${vals})`;
+    await expectError(insert(", country_codes", ", '{XX}'"), [], "23514");
+    await expectError(insert(", role_codes", ", '{inexistente}'"), [], "23514");
+    await expectError(insert(", plan_codes", ", '{premium}'"), [], "23514");
+    await expectError(insert(", starts_at, ends_at", ", now(), now()"), [], "23514");
+    await expectError(insert(", status", ", 'archived'"), [], "23514");
+    await expectError("INSERT INTO announcements (title, body) VALUES ('', 'b')", [], "23514");
+    await expectError("INSERT INTO announcements (title, body) VALUES (E'a\\nb', 'b')", [], "23514");
+    await expectError("INSERT INTO announcements (title, body) VALUES ('t', repeat('x', 2001))", [], "23514");
+    await q(insert(", country_codes, role_codes, plan_codes", ", '{PE}', '{docente,director}', '{gratis}'"));
+  });
+
+  await test("notifications: private, read-only for the client; mark read affects only own", async () => {
+    const add = async (user, key) => (await q("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'module_available', 't', 'b', '/modulos/biblioteca', $2) RETURNING id", [user, key])).rows[0].id;
+    const a1 = await add(ids.a, "k1");
+    const a2 = await add(ids.a, "k2");
+    const b1 = await add(ids.b, "k1");
+    await expectError("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', '/panel', 'k1')", [ids.a], "23505");
+    await expectError("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', '//evil.example', 'x')", [ids.a], "23514");
+    await expectError("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', 'https://evil.example', 'y')", [ids.a], "23514");
+    await as(ids.a);
+    assert(await count("SELECT 1 FROM notifications") === 2, "A should see exactly own 2");
+    await expectError("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', '/panel', 'z')", [ids.a]);
+    await expectError("UPDATE notifications SET read_at = now()");
+    await expectError("DELETE FROM notifications");
+    await q("SELECT public.mark_notifications_read($1)", [[b1]]);
+    await q("SELECT public.mark_notifications_read($1)", [[a1]]);
+    let read = (await q("SELECT id FROM notifications WHERE read_at IS NOT NULL")).rows.map((r) => r.id);
+    assert(read.length === 1 && read[0] === a1, "only a1 should be read");
+    await q("SELECT public.mark_notifications_read()");
+    assert(await count("SELECT 1 FROM notifications WHERE read_at IS NULL") === 0, "mark all failed");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM notifications WHERE id = $1 AND read_at IS NULL", [b1]) === 1, "A marked B notification");
+    assert(await count("SELECT 1 FROM notifications WHERE id = $1 AND read_at IS NOT NULL", [a2]) === 1, "a2 not marked");
+  });
+
+  await test("welcome: onboarding completion notifies once and records activity once", async () => {
+    await as(ids.a);
+    await q("UPDATE profiles SET display_name = 'Ana', country_code = 'PE'");
+    await q("SELECT public.save_education_selection($1, true)", [[catalog.primaria]]);
+    await q("SET CONSTRAINTS ALL DEFERRED");
+    const { rows } = await q("SELECT kind, link_path, read_at FROM notifications");
+    assert(rows.length === 1 && rows[0].kind === "welcome" && rows[0].link_path === "/panel" && rows[0].read_at === null, "welcome missing");
+    await q("SELECT public.save_education_selection($1, true)", [[catalog.primaria]]);
+    await q("SET CONSTRAINTS ALL DEFERRED");
+    await q("UPDATE profiles SET onboarding_completed_at = null");
+    await q("UPDATE profiles SET onboarding_completed_at = now()");
+    await checkDeferred();
+    assert(await count("SELECT 1 FROM notifications") === 1, "welcome duplicated");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM activity_events WHERE user_id = $1 AND kind = 'onboarding.completed'", [ids.a]) === 1, "onboarding activity not recorded once");
+    assert(await count("SELECT 1 FROM notifications WHERE user_id <> $1", [ids.a]) === 0, "welcome sent to others");
+  });
+
+  await test("module activation: each interested user notified exactly once", async () => {
+    for (const user of [ids.a, ids.director, ids.b]) await setCountry(user, "PE");
+    for (const user of [ids.a, ids.director]) {
+      await as(user);
+      await q("SELECT public.register_module_interest('marketplace')");
+    }
+    await as(ids.b);
+    await q("SELECT public.register_module_interest('biblioteca')");
+    await q("RESET ROLE");
+    await q("UPDATE modules SET status = 'active' WHERE id = 'marketplace'");
+    await q("UPDATE modules SET sort_order = 31 WHERE id = 'marketplace'");
+    await q("UPDATE modules SET status = 'coming_soon' WHERE id = 'marketplace'");
+    await q("UPDATE modules SET status = 'active' WHERE id = 'marketplace'");
+    const { rows } = await q("SELECT user_id, link_path, dedupe_key FROM notifications WHERE kind = 'module_available' ORDER BY user_id");
+    const expected = [ids.a, ids.director].sort();
+    assert(JSON.stringify(rows.map((r) => r.user_id).sort()) === JSON.stringify(expected), `notified ${rows.map((r) => r.user_id)}`);
+    assert(rows.every((r) => r.link_path === "/modulos/marketplace" && r.dedupe_key === "module_available:marketplace"), "wrong link or dedupe key");
+    await as(ids.a);
+    assert(await count("SELECT 1 FROM notifications WHERE kind = 'module_available'") === 1, "A should see own notification");
+    assert(accessOf(await myModules()).marketplace === "coming_soon", "active without implementation must stay coming_soon");
+  });
+
+  await test("activity: no client read or write; session start recorded for active users", async () => {
+    await as(ids.a);
+    await q("SELECT public.record_session_started()");
+    await expectError("SELECT 1 FROM activity_events");
+    await expectError("INSERT INTO activity_events (user_id, kind) VALUES ($1, 'session.started')", [ids.a]);
+    await expectError("SELECT app_private.record_activity($1, 'session.started')", [ids.a]);
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM activity_events WHERE user_id = $1 AND kind = 'session.started'", [ids.a]) === 1, "session not recorded");
+  });
+
+  await test("deletion: cascades interests, notifications and activity; authored announcements survive", async () => {
+    await setCountry(ids.b, "PE");
+    await q("INSERT INTO announcements (title, body, status, author_user_id) VALUES ('De B', 'x', 'published', $1)", [ids.b]);
+    await q("INSERT INTO notifications (user_id, kind, title, body, link_path, dedupe_key) VALUES ($1, 'welcome', 't', 'b', '/panel', 'welcome')", [ids.b]);
+    await as(ids.b);
+    await q("SELECT public.register_module_interest('biblioteca')");
+    await q("SELECT public.record_session_started()");
+    await q("SELECT public.request_account_deletion()");
+    await q("SELECT public.perform_account_deletion()");
+    await q("RESET ROLE");
+    await checkDeferred();
+    for (const table of ["module_interests", "notifications", "activity_events"]) {
+      assert(await count(`SELECT 1 FROM ${table} WHERE user_id = $1`, [ids.b]) === 0, `${table} not erased`);
+    }
+    assert(await count("SELECT 1 FROM announcements WHERE title = 'De B' AND author_user_id IS NULL") === 1, "announcement not kept anonymised");
+  });
 } finally {
   await q("ROLLBACK").catch(() => {});
   await client.end();

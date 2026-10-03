@@ -5,6 +5,7 @@
 --    requisito de cierre antes de usuarios reales.
 -- 2. Catálogo educativo PRELIMINAR: estructura general de niveles y grados de la Educación
 --    Básica Regular, pendiente de revisión del propietario. Sin áreas curriculares todavía.
+-- 3–4. Etapa 3: demo con derecho requerido y aviso de prueba (ver al final).
 -- Idempotente: se puede ejecutar varias veces.
 
 insert into public.territory_units (country_code, kind, official_code, name, source, is_synthetic) values
@@ -50,3 +51,17 @@ join public.education_catalog g
   on g.country_code = l.country_code and g.kind = 'grade' and g.code like l.code || '-%'
 where l.country_code = 'PE' and l.kind = 'level'
 on conflict do nothing;
+
+-- 3. Etapa 3 (SOLO dev y staging): el módulo demo queda disponible en PE pero exige
+--    demo.access, que ningún usuario tiene hasta la etapa 5 (resultado: requires_entitlement).
+--    En producción no existe esta fila, así que el resolvedor lo oculta.
+insert into public.module_availability (module_id, country_code, required_entitlement)
+values ('demo', 'PE', 'demo.access')
+on conflict (module_id, country_code) do nothing;
+
+-- 4. Aviso SINTÉTICO de prueba, publicado y sin restricción de audiencia.
+insert into public.announcements (title, body, status)
+select 'Aviso de prueba',
+  'Aviso sintético de desarrollo y staging para probar el panel. No contiene información real.',
+  'published'
+where not exists (select 1 from public.announcements where title = 'Aviso de prueba');
