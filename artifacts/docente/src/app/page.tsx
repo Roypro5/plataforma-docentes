@@ -50,7 +50,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="rise d3 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="rise d3 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="paper rounded-2xl border p-5 sm:p-6">
           <h2 className="font-display text-xl font-semibold">{t.modulesTitle}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t.modulesNote}</p>

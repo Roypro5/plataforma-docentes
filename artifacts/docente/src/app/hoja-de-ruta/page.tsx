@@ -14,7 +14,7 @@ export default function Ruta() {
           return (
             <li key={s.n} className={`rise relative flex gap-4 d${Math.min(i, 4)}`} aria-current={cur ? "step" : undefined}>
               <span className={`relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 font-mono font-bold ${cur ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface text-muted-foreground"}`}>{s.n}</span>
-              <div className={`paper min-w-0 flex-1 rounded-2xl border p-5 ${cur ? "border-accent/50" : "opacity-90"}`}>
+              <div className={`paper min-w-0 flex-1 rounded-2xl border p-5 ${cur ? "border-accent/50" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-display text-xl font-semibold">{s.title}</h2>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cur ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground"}`}>{cur ? t.current : t.next}</span>

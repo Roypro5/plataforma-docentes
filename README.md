@@ -51,9 +51,9 @@ No hay secretos de servidor requeridos en etapa 1. No subir `.env` ni claves. No
 
 Lint, TypeScript, build y tres pruebas unitarias pasaron localmente. Las capturas se revisaron en escritorio y a 360 px.
 
-El workflow CI está preparado en el workspace original como `.github/workflows/foundation.yml`, pero **no pudo subirse a GitHub por falta de acceso a workflows en la integración**. El propietario debe añadir ese archivo desde el workspace mediante GitHub o una credencial autorizada para workflows. No hay CI remoto habilitado por esta carga ni resultado verde verificado.
+El propietario añadió el workflow `.github/workflows/foundation.yml` al remoto. La ejecución inicial pasó las comprobaciones previas y detectó fallos de contraste y ancho móvil en humo. Estos se corrigieron en la interfaz: los dos proyectos Playwright pasan localmente, sin cambiar la prueba ni el workflow. Ver [reporte de corrección](docs/reports/correccion-smoke-accesibilidad.md).
 
-Cuando esté añadido, su resultado debe comprobarse en GitHub Actions. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales. Las pruebas SQL/RLS y humo/axe están preparadas: no se afirma que hayan pasado antes de la ejecución remota.
+La nueva ejecución remota debe comprobarse en GitHub Actions; los resultados locales no prueban por sí solos CI verde. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
 
 La etapa 1 no está cerrada: pendientes staging verificado, dos proyectos Supabase Free, recepción de errores Sentry y CI remoto.
 

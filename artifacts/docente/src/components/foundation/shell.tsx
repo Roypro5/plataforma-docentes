@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <n.icon className="h-5 w-5 shrink-0" aria-hidden />
                 <span className="leading-tight">
                   <span className="block text-sm font-semibold">{t.label}</span>
-                  <span className="block text-xs opacity-75">{t.desc}</span>
+                  <span className="block text-xs">{t.desc}</span>
                 </span>
               </Link>
             );
