@@ -1,7 +1,9 @@
-# Etapa 2 — Verificación (en curso)
+# Etapa 2 — Demo y reporte de verificación
 
 **Autorización:** el propietario aprobó iniciar la etapa 2 el 03/10/2026.
-**Estado:** implementación desplegada en staging; verificación manual casi completa. **No cerrada:** faltan recuperación de contraseña, Google y la revisión del propietario.
+**Estado:** implementación desplegada y **todas las pruebas manuales aprobadas en staging**. **Pendiente de aprobación del propietario para cerrar la etapa 2.** La etapa 3 no está iniciada.
+
+**Demo:** https://plataforma-docentesstaging.vercel.app (Ingresar, Registro, Mi cuenta, Administración).
 
 ## Implementado
 
@@ -31,14 +33,20 @@ Realizada por el propietario sobre https://plataforma-docentesstaging.vercel.app
 | Bootstrap del superadmin por SQL, enrolamiento TOTP y acceso a `/admin` | ✅ |
 | Bloqueo de eliminación del último superadmin | ✅ |
 | Eliminación de una cuenta de prueba: identidad Auth y datos borrados, auditoría registrada (comprobado por SQL) | ✅ |
-| Recuperación de contraseña | ⏳ El primer intento falló porque la cuenta tenía MFA (corregido en `61a9219`); el reintento quedó sin correo por el límite de envío del SMTP gratuito de Supabase |
-| Ingreso con Google | ⏳ Proveedor aún no configurado |
+| Recuperación de contraseña en cuenta con MFA (enlace por correo + código TOTP) | ✅ El primer intento falló porque la cuenta tenía MFA (corregido en `61a9219`); aprobado tras esperar el límite de envío del SMTP gratuito |
+| Ingreso con Google (cliente OAuth en Google Cloud, modo Testing con usuario de prueba) | ✅ |
 
 ## Hallazgos y correcciones
 
 - El cambio de contraseña con MFA exige una sesión aal2: el formulario ahora pide el código TOTP.
 - Faltaba cerrar sesión durante el onboarding: añadido.
+- El secreto del cliente OAuth de Google quedó visible en una captura compartida en el chat de trabajo: el propietario creó un secreto nuevo, lo cargó solo en Supabase y eliminó el anterior.
 - El SMTP integrado de Supabase permite muy pocos correos por hora: la app ahora lo informa. **Antes de tener usuarios reales se necesita un SMTP propio** (decisión y posible coste del propietario).
+
+## Pendientes no bloqueantes de la etapa 2
+
+- Configurar Auth del proyecto **dev** (Site URL `http://localhost:3000`, Redirect URLs y Google con un cliente propio) cuando se necesite desarrollo local contra Supabase.
+- Pantalla de consentimiento de Google en modo *Testing*: solo los usuarios de prueba pueden ingresar con Google. Publicarla requiere revisión de Google antes del lanzamiento.
 
 ## Pendientes antes de usuarios reales
 

@@ -4,7 +4,7 @@ Plataforma para docentes peruanos. Next.js App Router, TypeScript, Tailwind y Su
 
 ## Alcance
 
-Etapa 1 cerrada. **Etapa 2 en curso** (autorizada el 03/10/2026): registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. Sin pagos ni dashboard. No avanzar a etapa 3 sin demo, reporte de CI y aprobación del propietario.
+Etapa 1 cerrada. **Etapa 2 implementada y verificada en staging, pendiente de aprobación** (autorizada el 03/10/2026; ver [reporte](docs/reports/etapa-2-verificacion.md)): registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. Sin pagos ni dashboard. No avanzar a etapa 3 sin demo, reporte de CI y aprobación del propietario.
 
 Desarrollo y staging: servicios gratuitos. El propietario desplegó staging en Vercel Hobby: https://plataforma-docentesstaging.vercel.app/. No usar la API de Vercel ni contratar servicios pagados.
 

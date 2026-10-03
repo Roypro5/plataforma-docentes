@@ -82,11 +82,13 @@ No hay correo ni contraseña en el código. Pasos:
 
 Estas comprobaciones se hacen sobre Supabase real; el harness de CI no las sustituye:
 
-- [ ] Registro con correo → email de confirmación → `/bienvenida`.
-- [ ] Ingreso con Google.
-- [ ] Recuperación de contraseña → `/restablecer` → nueva contraseña funciona.
-- [ ] Onboarding: guardar el paso 1, cerrar sesión, volver a ingresar y retomar en el paso 2; completar en menos de 2 minutos.
-- [ ] Perfil muestra los datos y la versión de términos aceptada.
-- [ ] Eliminación: con sesión antigua pide reingresar; luego borra la cuenta (Auth → Users ya no la muestra).
-- [ ] Superadmin: bootstrap, enrolamiento TOTP y acceso a `/admin` solo con código.
-- [ ] El trigger `on_auth_user_created` y el borrado `delete from auth.users` funcionan con los permisos del rol `postgres` del proyecto alojado. **Pendiente de confirmar en Supabase real.**
+Completada en staging el 03/10/2026; resultados en `docs/reports/etapa-2-verificacion.md`.
+
+- [x] Registro con correo → email de confirmación → `/bienvenida`.
+- [x] Ingreso con Google.
+- [x] Recuperación de contraseña → `/restablecer` → nueva contraseña funciona (con código TOTP si la cuenta tiene MFA).
+- [x] Onboarding completo y retomable.
+- [x] Perfil muestra los datos y la versión de términos aceptada.
+- [x] Eliminación de una cuenta de prueba: Auth → Users ya no la muestra y no quedan datos.
+- [x] Superadmin: bootstrap, enrolamiento TOTP y acceso a `/admin` solo con código; el último superadmin no puede eliminarse.
+- [x] El trigger `on_auth_user_created` y el borrado `delete from auth.users` funcionan con los permisos del rol `postgres` del proyecto alojado.

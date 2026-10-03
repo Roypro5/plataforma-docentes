@@ -52,9 +52,9 @@ export const es = {
     statusTitle: "Estado de la etapa 2",
     status: [
       { label: "Base, diseño, CI y staging (etapa 1)", done: true },
-      { label: "Esquema de datos y RLS con pruebas negativas", done: false },
-      { label: "Registro, ingreso, perfil y onboarding", done: false },
-      { label: "MFA administrativo y eliminación de cuenta", done: false },
+      { label: "Esquema de datos y RLS con pruebas negativas", done: true },
+      { label: "Registro, ingreso, perfil y onboarding", done: true },
+      { label: "MFA administrativo y eliminación de cuenta", done: true },
     ],
     done: "Listo",
     pending: "Pendiente",
