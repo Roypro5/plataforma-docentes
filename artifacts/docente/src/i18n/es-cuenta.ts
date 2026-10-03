@@ -6,6 +6,7 @@ export const cuenta = {
     show: "Mostrar contraseña",
     sending: "Enviando…",
     genericError: "No pudimos completar la acción. Inténtalo de nuevo en unos minutos.",
+    emailRateLimit: "Se alcanzó el límite de correos que puede enviar el entorno de prueba. Inténtalo de nuevo en una hora.",
     notConfiguredTitle: "Las cuentas aún no están conectadas en este entorno",
     notConfiguredBody:
       "Falta configurar Supabase Auth para este despliegue. No simulamos inicios de sesión: cuando el entorno esté conectado, este formulario funcionará.",
@@ -42,7 +43,7 @@ export const cuenta = {
     eyebrow: "Tu cuenta",
     lead: "Escribe tu correo y te enviaremos un enlace para crear una nueva contraseña.",
     submit: "Enviar enlace",
-    sent: "Si existe una cuenta con ese correo, recibirás un enlace en unos minutos.",
+    sent: "Listo. Revisa tu correo: te enviamos un enlace para crear una nueva contraseña. Si no llega en unos minutos, revisa la carpeta de spam y confirma que escribiste el correo de tu cuenta.",
   },
   restablecer: {
     title: "Nueva contraseña",

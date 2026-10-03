@@ -53,6 +53,7 @@ export async function signUpAction(_: FormState, form: FormData): Promise<FormSt
     options: { emailRedirectTo: await callbackUrl("/bienvenida") },
   });
   if (error?.code === "weak_password" || error?.code === "validation_failed") return { error: t.registro.invalid };
+  if (error?.code === "over_email_send_rate_limit") return { error: t.common.emailRateLimit };
   // Same answer whether or not the email exists, to avoid account enumeration.
   if (error && error.code !== "user_already_exists" && error.code !== "email_exists") return { error: t.common.genericError };
   return { ok: t.registro.sent };
@@ -62,7 +63,9 @@ export async function recoverAction(_: FormState, form: FormData): Promise<FormS
   const parsed = recoverSchema.safeParse({ email: form.get("email") });
   if (!parsed.success) return { error: t.registro.invalid };
   const supabase = await client();
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: await callbackUrl("/restablecer") });
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: await callbackUrl("/restablecer") });
+  // The project-wide send limit says nothing about whether this email has an account.
+  if (error?.code === "over_email_send_rate_limit") return { error: t.common.emailRateLimit };
   return { ok: t.recuperar.sent };
 }
 
