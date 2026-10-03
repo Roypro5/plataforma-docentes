@@ -1,4 +1,5 @@
 import { cuenta } from "./es-cuenta";
+import { modulos } from "./es-modulos";
 
 export const es = {
   shell: {
@@ -136,4 +137,5 @@ export const es = {
     contactPending: "Los canales oficiales de contacto se publicarán más adelante. Por ahora no hay correo ni teléfono habilitados.",
   },
   cuenta,
+  modulos,
 } as const;
