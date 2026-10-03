@@ -55,7 +55,7 @@ El propietario añadió el workflow `.github/workflows/foundation.yml` al remoto
 
 El [CI del arreglo](https://github.com/Roypro5/plataforma-docentes/actions/runs/37080506638) terminó con éxito: lint, TypeScript, unitarias, harness SQL/RLS, build y humo/axe aprobados. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
 
-Staging y CI remoto verificados. Sentry aceptó un error sintético desde staging (HTTP 200); su aparición en Issues y los dos proyectos Supabase Free siguen pendientes de confirmación. Ver detalles en el reporte y runbook. No iniciar etapa 2 sin aprobación.
+Staging, CI remoto y recepción/indexación del error sintético en Sentry verificados. Los dos proyectos Supabase Free siguen pendientes de confirmación. Ver detalles en el reporte y runbook. No iniciar etapa 2 sin aprobación.
 
 Documentación:
 

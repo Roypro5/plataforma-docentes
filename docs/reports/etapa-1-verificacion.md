@@ -59,7 +59,7 @@ El harness no representa las políticas del producto: esas pertenecen a etapa 2.
 - Escritorio (1280 px) y móvil (360 px): un `h1`, idioma `es-PE`, sin desbordamiento horizontal y cero violaciones en el análisis axe WCAG 2 A/AA y 2.1 AA de cada ruta.
 - `noindex, nofollow` presente; no equivale a un sitio privado.
 - Captura visual de inicio revisada sobre la URL real de staging.
-- Error sintético emitido por el navegador del staging: ingestión Sentry HTTP 200, entorno `staging`, Event ID `1f8cfc95da1e4b708749e02280ef786d`, sin usuario, petición, contexto ni tags. Aparición en Issues pendiente de acceso de lectura.
+- Error sintético emitido por el navegador del staging: ingestión Sentry HTTP 200, entorno `staging`, Event ID `1f8cfc95da1e4b708749e02280ef786d`, sin usuario, petición, contexto ni tags. Recepción e indexación confirmadas mediante búsqueda del ID exacto y entorno: issue [JAVASCRIPT-NEXTJS-1](https://proyectosderoy.sentry.io/issues/JAVASCRIPT-NEXTJS-1), proyecto `javascript-nextjs`, fecha `2026-10-03T00:36:12Z`. No se volvió a emitir el error ni se modificó el issue.
 
 Estos resultados no certifican accesibilidad completa ni confirman la configuración interna del panel Vercel. No se cambió código ni se creó un endpoint público para provocar errores.
 
@@ -69,7 +69,7 @@ Estos resultados no certifican accesibilidad completa ni confirman la configurac
 |---|---|
 | Vercel Hobby staging | URL y funcionamiento verificados. No se usó la API de Vercel |
 | Dos proyectos Supabase Free independientes | Pendiente de configurar/verificar proyectos y acceso seguro; no se usa otra base como sustituto |
-| Sentry | DSN configurado por el propietario; evento aceptado HTTP 200. Lectura en Issues y plan Free no inspeccionados |
+| Sentry | Recepción/indexación verificadas en el issue enlazado; DSN manual en Vercel. Plan de facturación no inspeccionado |
 | CI remoto | Aprobado; ejecución enlazada arriba |
 | Prueba de humo con axe | Aprobada en CI y análisis de las cuatro rutas desplegadas a 1280/360 px; no es certificación WCAG |
 | Revisión del propietario en celular | Resultado sin confirmar; no convertir el texto de plantilla en aprobación |

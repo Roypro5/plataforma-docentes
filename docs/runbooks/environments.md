@@ -96,7 +96,14 @@ Se provocó **un único error** con un temporizador del navegador, sin añadir b
 - Excepción enviada: `ApplicationError` / `Detalle omitido por privacidad`.
 - Sin `user`, `request`, `contexts` ni `tags` en el evento observado.
 
-Esto verifica el envío desde la aplicación desplegada y su aceptación por el endpoint de Sentry. **La aparición del evento en Issues aún no está verificada**: requiere acceso de lectura al proyecto Sentry. El DSN permite ingestión, no lectura de eventos. Correlacionar por Event ID, no por el mensaje de prueba, que el filtro de privacidad omite deliberadamente.
+**Recepción e indexación verificadas en Sentry**, mediante la conexión de lectura autorizada por el propietario. La búsqueda por el Event ID exacto y `environment:staging` devolvió un evento:
+
+- Organización: `proyectosderoy`; proyecto: `javascript-nextjs`.
+- Issue: [JAVASCRIPT-NEXTJS-1](https://proyectosderoy.sentry.io/issues/JAVASCRIPT-NEXTJS-1).
+- Fecha del evento: `2026-10-03T00:36:12Z` (02/10/2026, 19:36:12 en Lima).
+- Severidad: `error`; tipo: `ApplicationError`; mensaje sanitizado: `Detalle omitido por privacidad`.
+
+No se emitió otro error para esta consulta, ni se modificó o resolvió el issue. Conectar Sentry para leer este evento no añade la integración de Sentry de Vercel ni cambia el DSN. El plan de facturación no se inspeccionó. Correlacionar por Event ID, no por el mensaje de prueba, que el filtro de privacidad omite deliberadamente.
 
 ## CI
 
@@ -115,7 +122,7 @@ Playwright/axe pasó remotamente en escritorio y móvil de 360 px. Esto no certi
 
 ## Cierre y autorización
 
-Demo de staging y CI remoto verificados. Para el cierre formal siguen pendientes la lectura del evento en Sentry y la confirmación de los dos proyectos Supabase Free independientes exigidos por el alcance. La revisión en celular del propietario no se presupone aprobada.
+Demo de staging, CI remoto y recepción/indexación del error de Sentry verificados. Para el cierre formal sigue pendiente la confirmación de los dos proyectos Supabase Free independientes exigidos por el alcance. La revisión en celular del propietario no se presupone aprobada.
 
 La etapa 2 **no está iniciada** y necesita aprobación explícita. Para preparar su ejecución se requerirán los proyectos Supabase de desarrollo/staging y su configuración segura, habilitación de correo/Google en Supabase Auth, identidad verificada del superadmin y validación de los textos mínimos de consentimiento y del responsable de datos. No enviar credenciales por chat ni cargar variables de etapa 2 antes de autorizarla.
 
