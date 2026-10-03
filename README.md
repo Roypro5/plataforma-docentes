@@ -4,7 +4,7 @@ Plataforma para docentes peruanos. Next.js App Router, TypeScript, Tailwind y Su
 
 ## Alcance
 
-Etapa 1 cerrada. **Etapa 2 implementada y verificada en staging, pendiente de aprobación** (autorizada el 03/10/2026; ver [reporte](docs/reports/etapa-2-verificacion.md)): registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. Sin pagos ni dashboard. No avanzar a etapa 3 sin demo, reporte de CI y aprobación del propietario.
+Etapas 1 y 2 cerradas ([reporte etapa 2](docs/reports/etapa-2-verificacion.md)). Etapa 3 autorizada; plan en revisión. La etapa 2 incluye: registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. Sin pagos ni dashboard. Cada etapa se cierra con demo, reporte de CI y aprobación del propietario.
 
 Desarrollo y staging: servicios gratuitos. El propietario desplegó staging en Vercel Hobby: https://plataforma-docentesstaging.vercel.app/. No usar la API de Vercel ni contratar servicios pagados.
 
@@ -55,7 +55,7 @@ El propietario añadió el workflow `.github/workflows/foundation.yml` al remoto
 
 El [CI del arreglo](https://github.com/Roypro5/plataforma-docentes/actions/runs/37080506638) terminó con éxito: lint, TypeScript, unitarias, harness SQL/RLS, build y humo/axe aprobados. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
 
-**Etapa 1 cerrada formalmente por solicitud del propietario:** staging, CI remoto y recepción/indexación del error sintético en Sentry verificados. El propietario confirmó dos proyectos Supabase Free independientes en `us-east-2` y revisión en iPhone 17 «todo bien»; el resultado del Redmi 15C permanece pendiente. Ver detalles y límites de verificación en el reporte y runbook. La etapa 2 no está iniciada y requiere aprobación explícita.
+**Etapa 1 cerrada formalmente por solicitud del propietario:** staging, CI remoto y recepción/indexación del error sintético en Sentry verificados. El propietario confirmó dos proyectos Supabase Free independientes en `us-east-2` y revisión en iPhone 17 «todo bien»; el resultado del Redmi 15C permanece pendiente. Ver detalles y límites de verificación en el reporte y runbook.
 
 Documentación:
 

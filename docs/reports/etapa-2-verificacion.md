@@ -1,7 +1,7 @@
 # Etapa 2 — Demo y reporte de verificación
 
 **Autorización:** el propietario aprobó iniciar la etapa 2 el 03/10/2026.
-**Estado:** implementación desplegada y **todas las pruebas manuales aprobadas en staging**. **Pendiente de aprobación del propietario para cerrar la etapa 2.** La etapa 3 no está iniciada.
+**Estado:** **etapa 2 cerrada** por aprobación del propietario el 03/10/2026, con todas las pruebas manuales aprobadas en staging. El propietario autorizó iniciar la etapa 3 a partir de un plan que debe aprobar antes de implementarse.
 
 **Demo:** https://plataforma-docentesstaging.vercel.app (Ingresar, Registro, Mi cuenta, Administración).
 
