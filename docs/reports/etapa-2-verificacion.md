@@ -50,4 +50,4 @@ Realizada por el propietario sobre https://plataforma-docentesstaging.vercel.app
 
 ## Pendientes antes de usuarios reales
 
-Importación del padrón oficial MINEDU (reemplaza el territorio sintético), revisión del catálogo educativo, textos legales, responsable de datos, canal de soporte, SMTP transaccional y resultado del Redmi 15C.
+Importación del padrón oficial MINEDU (reemplaza el territorio sintético), revisión del catálogo educativo, textos legales, responsable de datos, canal de soporte y SMTP transaccional. (La revisión del Redmi 15C se resolvió en la etapa 3.)

@@ -82,7 +82,7 @@ El propietario confirmó el despliegue en equipo **Hobby**, proyecto **`platafor
 - Verificación externa: `/`, `/sistema`, `/ayuda` y `/hoja-de-ruta` responden HTTP 200.
 - Navegador automatizado a 1280 y 360 px: un `h1` por ruta, `lang=es-PE`, ancho del documento igual al viewport y cero violaciones en axe con etiquetas `wcag2a`, `wcag2aa`, `wcag21aa`.
 - Todas las rutas incluyen `noindex, nofollow`. El sitio es accesible públicamente; esto no prueba que exista protección de acceso.
-- Revisión del propietario: **iPhone 17, «todo bien»**. Redmi 15C (Android de gama media): **resultado pendiente**, porque el mensaje mantiene las alternativas de una plantilla; no se registra como aprobado.
+- Revisión del propietario: **iPhone 17, «todo bien»**. Redmi 15C (Android de gama media): quedó pendiente en la etapa 1 porque el mensaje mantenía las alternativas de una plantilla; **resuelto el 03/10/2026** (PWA instalada y mostrada correctamente, ver `docs/reports/etapa-3-verificacion.md`).
 
 **No usar la API de Vercel.** La verificación se realizó sobre la URL pública y GitHub Actions, sin invocar dicha API ni cambiar la configuración del proveedor.
 
@@ -143,7 +143,7 @@ Playwright/axe pasó remotamente en escritorio y móvil de 360 px. Esto no certi
 
 ## Cierre y autorización
 
-**Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C queda pendiente como observación, no como prueba aprobada. La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
+**Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C quedó pendiente como observación en ese cierre y se resolvió el 03/10/2026 (etapa 3). La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
 
 La etapa 2 **no está iniciada** y necesita aprobación explícita. Para preparar su ejecución se requerirán los proyectos Supabase de desarrollo/staging y su configuración segura, habilitación de correo/Google en Supabase Auth, identidad verificada del superadmin y validación de los textos mínimos de consentimiento y del responsable de datos. No enviar credenciales por chat ni cargar variables de etapa 2 antes de autorizarla.
 
