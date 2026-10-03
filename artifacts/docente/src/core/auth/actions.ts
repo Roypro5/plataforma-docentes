@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { FormState } from "@/components/cuenta/styles";
 import { es } from "@/i18n/es";
 import { safeNextPath } from "./routes";
-import { recoverSchema, resetSchema, signInSchema, signUpSchema } from "./schemas";
+import { recoverSchema, resetSchema, signInSchema, signUpSchema, totpCodeSchema } from "./schemas";
 
 const t = es.cuenta;
 
@@ -72,7 +72,24 @@ export async function resetPasswordAction(_: FormState, form: FormData): Promise
   const supabase = await client();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims?.sub) return { error: t.restablecer.noSession };
+
+  // With MFA enrolled, Supabase only changes the password from an aal2 session; the
+  // recovery link alone gives aal1, so verify the TOTP code first.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+    const code = totpCodeSchema.safeParse({ code: form.get("code") });
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const factor = factors?.totp?.find((f) => f.status === "verified");
+    if (!code.success || !factor) return { error: t.restablecer.invalidCode };
+    const verified = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: code.data.code });
+    if (verified.error) return { error: t.restablecer.invalidCode };
+  }
+
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error?.code === "same_password") return { error: t.restablecer.samePassword };
+  if (error?.code === "weak_password") return { error: t.restablecer.weakPassword };
+  if (error?.code === "insufficient_aal") return { error: t.restablecer.invalidCode };
+  if (error?.code === "reauthentication_needed") return { error: t.restablecer.reauth };
   if (error) return { error: t.common.genericError };
   redirect("/perfil");
 }

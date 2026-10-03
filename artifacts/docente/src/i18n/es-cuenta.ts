@@ -52,6 +52,12 @@ export const cuenta = {
     submit: "Guardar contraseña",
     mismatch: "Las contraseñas no coinciden o tienen menos de 8 caracteres.",
     noSession: "Abre esta página desde el enlace que te enviamos por correo.",
+    mfaCode: "Código de tu app autenticadora",
+    mfaHint: "Tu cuenta tiene verificación en dos pasos: confirma el código para cambiar la contraseña.",
+    invalidCode: "El código de la app autenticadora no es válido o expiró.",
+    samePassword: "La nueva contraseña debe ser distinta de la anterior.",
+    weakPassword: "La contraseña es demasiado débil. Usa al menos 8 caracteres combinando letras y números.",
+    reauth: "Por seguridad, solicita un nuevo enlace de recuperación y vuelve a intentarlo.",
   },
   onboarding: {
     eyebrow: "Bienvenida",

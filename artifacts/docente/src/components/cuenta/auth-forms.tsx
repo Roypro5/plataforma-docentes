@@ -67,12 +67,18 @@ export function RecoverForm({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function ResetForm() {
+export function ResetForm({ needsMfa }: { needsMfa: boolean }) {
   const [state, action] = useActionState(resetPasswordAction, undefined);
   return (
     <form action={action} className="space-y-4">
       <PasswordField autoComplete="new-password" hint={t.common.passwordHint} />
       <PasswordField id="confirm" label={t.restablecer.confirm} autoComplete="new-password" />
+      {needsMfa && (
+        <Field id="code" label={t.restablecer.mfaCode} hint={t.restablecer.mfaHint}>
+          <input id="code" name="code" required inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6}
+            aria-describedby="code-hint" className={fieldClass} data-testid="input-reset-totp" />
+        </Field>
+      )}
       <FormMessage state={state} />
       <SubmitButton testId="button-reset-password">{t.restablecer.submit}</SubmitButton>
     </form>

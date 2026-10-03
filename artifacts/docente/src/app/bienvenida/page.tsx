@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/foundation/page-header";
 import { Step1Form, Step2Form, Step3Form } from "@/components/cuenta/onboarding-forms";
+import { btnQuiet } from "@/components/cuenta/styles";
 import { legal } from "@/config/legal";
+import { signOutAction } from "@/core/auth/actions";
 import { requireActiveViewer } from "@/core/auth/viewer";
 import { hasAcceptedCurrentLegal, loadProfileContext } from "@/core/profile/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -53,6 +55,10 @@ export default async function Bienvenida({ searchParams }: { searchParams: Promi
         )}
         {step === 3 && <Step3Form catalog={context.catalog} relations={context.relations} selected={context.selected} />}
       </section>
+      {/* /perfil redirects here until onboarding is complete, so sign-out must live here too. */}
+      <form action={signOutAction}>
+        <button type="submit" className={btnQuiet} data-testid="button-sign-out">{es.cuenta.perfil.signOut}</button>
+      </form>
     </div>
   );
 }
