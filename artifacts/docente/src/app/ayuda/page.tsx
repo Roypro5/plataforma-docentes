@@ -1,4 +1,4 @@
-export const metadata = { title: "Ayuda", description: "Alcance de la etapa 1 y respuestas sobre esta demostración." };
+export const metadata = { title: "Ayuda", description: "Alcance de esta versión de prueba y respuestas frecuentes." };
 import { ChevronDown, Mail } from "lucide-react";
 import { es } from "@/i18n/es";
 import { PageHeader, Section } from "@/components/foundation/page-header";

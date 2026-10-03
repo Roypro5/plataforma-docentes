@@ -138,7 +138,7 @@ export const cuenta = {
     submit: "Eliminar definitivamente",
     cancel: "Cancelar",
     mismatch: "Escribe ELIMINAR en mayúsculas para confirmar.",
-    lastSuperadmin: "Eres el último superadmin. Designa otro superadmin antes de eliminar tu cuenta.",
+    lastSuperadmin: "Eres el último superadmin activo. Designa otro superadmin, o reactiva uno suspendido, antes de eliminar tu cuenta.",
     pendingTitle: "La eliminación quedó pendiente",
     pendingBody: "Tu acceso está bloqueado y la eliminación no terminó. Puedes reintentarla ahora.",
     retry: "Reintentar eliminación",
@@ -155,9 +155,6 @@ export const cuenta = {
   },
   admin: {
     eyebrow: "Administración",
-    title: "Acceso administrativo",
-    lead: "Acceso verificado con MFA. El panel de usuarios, módulos y avisos llega en la etapa 4.",
-    denied: "Tu cuenta no tiene permisos administrativos.",
     mfaTitle: "Verificación en dos pasos",
     mfaLead: "La administración exige una app autenticadora (TOTP) en cada sesión.",
     enrollIntro: "Escanea este código con tu app autenticadora o escribe la clave manualmente.",

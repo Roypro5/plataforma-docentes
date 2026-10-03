@@ -13,7 +13,22 @@ test("account pages are accessible and private areas require sign-in", async ({ 
     expect(results.violations).toEqual([]);
   }
 
-  for (const route of ["/perfil", "/perfil/eliminar", "/bienvenida", "/admin", "/admin/mfa", "/cuenta-suspendida"]) {
+  for (const route of [
+    "/perfil",
+    "/perfil/eliminar",
+    "/bienvenida",
+    "/admin",
+    "/admin/mfa",
+    "/admin/usuarios",
+    "/admin/modulos",
+    "/admin/avisos",
+    "/admin/avisos/nuevo",
+    "/admin/catalogos",
+    "/admin/organizaciones",
+    "/admin/metricas",
+    "/admin/auditoria",
+    "/cuenta-suspendida",
+  ]) {
     const response = await page.goto(route);
     await expect(page).toHaveURL(new RegExp(`/ingresar\\?next=${encodeURIComponent(route)}$`));
     expect(response?.ok()).toBe(true);

@@ -3,7 +3,7 @@ export const product = {
   tagline: "Plataforma docente",
   country: "Perú",
   locale: "es-PE",
-  stage: 3,
+  stage: 4,
   totalStages: 5,
   contact: null as null | { email: string },
 } as const;
