@@ -1,7 +1,7 @@
 # Etapa 1 — Demo y reporte de verificación
 
 **Fecha:** 02/10/2026  
-**Estado:** demo de staging y CI remoto aprobados; cierre formal pendiente de confirmaciones externas indicadas abajo. No se ha iniciado etapa 2.
+**Estado:** **etapa 1 cerrada**, con demo, CI y recepción de errores verificados, y confirmaciones del propietario registradas. La etapa 2 no está iniciada y requiere aprobación explícita.
 
 ## Demo disponible
 
@@ -63,16 +63,20 @@ El harness no representa las políticas del producto: esas pertenecen a etapa 2.
 
 Estos resultados no certifican accesibilidad completa ni confirman la configuración interna del panel Vercel. No se cambió código ni se creó un endpoint público para provocar errores.
 
-## Pendientes para cerrar etapa 1
+## Evidencias del cierre de etapa 1
 
 | Requisito | Estado |
 |---|---|
 | Vercel Hobby staging | URL y funcionamiento verificados. No se usó la API de Vercel |
-| Dos proyectos Supabase Free independientes | Pendiente de configurar/verificar proyectos y acceso seguro; no se usa otra base como sustituto |
+| Dos proyectos Supabase Free independientes | Organización `plataforma-docentes-free`; proyectos `plataforma-docentes-dev` y `plataforma-docentes-staging`, ambos `us-east-2` (Ohio), confirmados por el propietario. Sin inspección de bases ni prueba de RLS del producto; corresponden a etapa 2 |
 | Sentry | Recepción/indexación verificadas en el issue enlazado; DSN manual en Vercel. Plan de facturación no inspeccionado |
 | CI remoto | Aprobado; ejecución enlazada arriba |
 | Prueba de humo con axe | Aprobada en CI y análisis de las cuatro rutas desplegadas a 1280/360 px; no es certificación WCAG |
-| Revisión del propietario en celular | Resultado sin confirmar; no convertir el texto de plantilla en aprobación |
+| Revisión del propietario en celular | iPhone 17: «todo bien». Redmi 15C: resultado pendiente; el mensaje conserva texto de plantilla |
+
+El propietario solicitó el cierre formal de etapa 1. El resultado del Redmi queda registrado como observación pendiente y no invalida ese cierre ni se presenta como prueba aprobada.
+
+Supabase: Data API activada, exposición automática de tablas desactivada y RLS automático activado en ambos proyectos, según el propietario. Las futuras migraciones deberán incluir `GRANT` explícitos por tabla expuesta y políticas RLS. Staging fue recreado sin datos para alinear su región; se requerirá la URL vigente, no una referencia anterior.
 
 No se contrató ningún servicio pagado ni se creó infraestructura de producción real del producto. No se publicaron cuentas/credenciales. La demo enlazada sí es el staging Vercel, no la vista previa local.
 
@@ -88,8 +92,8 @@ No se contrató ningún servicio pagado ni se creó infraestructura de producci�
 
 ## Qué se necesita del propietario para etapa 2
 
-1. Aprobación explícita tras revisar esta demo, el CI y los pendientes de cierre.
-2. Confirmación de dos proyectos Supabase Free independientes (desarrollo y staging), dentro del límite gratuito; URLs y configuración mediante canales seguros, no claves por chat.
+1. Aprobación explícita para iniciar etapa 2; las confirmaciones de infraestructura y revisión móvil no se interpretan como esa autorización.
+2. URLs actuales de los dos proyectos Supabase Free ya confirmados, especialmente del staging recreado, y configuración mediante gestores seguros; no enviar claves ni contraseñas por chat.
 3. Preparar correo y Google en Supabase Auth y sus URLs autorizadas; cualquier credencial se carga en el gestor seguro correspondiente.
 4. Identidad verificada del superadmin, sin asignar roles privilegiados antes de verificarla; mantener MFA para administración.
 5. Validar responsable de datos, canal de soporte y textos mínimos de consentimiento antes de habilitar registros y capturar perfiles.

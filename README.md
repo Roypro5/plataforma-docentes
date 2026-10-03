@@ -55,7 +55,7 @@ El propietario añadió el workflow `.github/workflows/foundation.yml` al remoto
 
 El [CI del arreglo](https://github.com/Roypro5/plataforma-docentes/actions/runs/37080506638) terminó con éxito: lint, TypeScript, unitarias, harness SQL/RLS, build y humo/axe aprobados. El harness PostgreSQL usa únicamente una base temporal local del runner, no Supabase ni datos reales.
 
-Staging, CI remoto y recepción/indexación del error sintético en Sentry verificados. Los dos proyectos Supabase Free siguen pendientes de confirmación. Ver detalles en el reporte y runbook. No iniciar etapa 2 sin aprobación.
+**Etapa 1 cerrada formalmente por solicitud del propietario:** staging, CI remoto y recepción/indexación del error sintético en Sentry verificados. El propietario confirmó dos proyectos Supabase Free independientes en `us-east-2` y revisión en iPhone 17 «todo bien»; el resultado del Redmi 15C permanece pendiente. Ver detalles y límites de verificación en el reporte y runbook. La etapa 2 no está iniciada y requiere aprobación explícita.
 
 Documentación:
 

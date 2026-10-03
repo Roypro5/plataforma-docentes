@@ -49,7 +49,26 @@ Estos nombres futuros están documentados, pero el código de etapa 1 no los con
 
 ## Supabase Free
 
-Crear/confirmar dos proyectos Free independientes, desarrollo y staging, en una organización Free. Solo avanzar si no supera el límite Free disponible. No crear tablas del producto en etapa 1. No copiar datos reales.
+El propietario confirmó **dos proyectos Supabase Free independientes: desarrollo y staging**. Esta es una confirmación del propietario, no una inspección del panel o de las bases. No se crearon tablas del producto ni se copiaron datos reales en etapa 1.
+
+Organización Free: **`plataforma-docentes-free`**.
+
+| Entorno | Proyecto | Región |
+|---|---|---|
+| Desarrollo | `plataforma-docentes-dev` | East US (Ohio), `us-east-2` |
+| Staging | `plataforma-docentes-staging` | East US (Ohio), `us-east-2` |
+
+El propietario recreó staging para alinear la región; confirmó que no tenía datos. Las referencias/URLs de la instancia anterior no deben reutilizarse.
+
+Configuración de seguridad declarada en ambos proyectos:
+
+- Data API: **activada**.
+- Automatically expose new tables: **desactivado**.
+- Enable automatic RLS: **activado**.
+
+**Regla obligatoria para las futuras migraciones:** incluir los `GRANT` explícitos necesarios para cada tabla expuesta, limitados a las operaciones y roles previstos, además de sus políticas RLS. Los permisos SQL y RLS son controles distintos; no depender de exposición automática ni conceder permisos generales para evitar errores. Las pruebas de etapa 2 deberán comprobar tanto los accesos permitidos como los denegados.
+
+Para etapa 2 se requerirán las URLs de ambos proyectos y su configuración por canales seguros, después de la aprobación explícita. Mantener la organización y los proyectos dentro de los límites gratuitos disponibles.
 
 La integración Supabase no apareció en la búsqueda disponible. Esto no impide usar su SDK/servicio externo aprobado; sus proyectos y credenciales deben configurarse de forma segura por el propietario. No sustituir silenciosamente el proveedor.
 
@@ -61,7 +80,7 @@ El propietario confirmó el despliegue en equipo **Hobby**, proyecto **`platafor
 - Verificación externa: `/`, `/sistema`, `/ayuda` y `/hoja-de-ruta` responden HTTP 200.
 - Navegador automatizado a 1280 y 360 px: un `h1` por ruta, `lang=es-PE`, ancho del documento igual al viewport y cero violaciones en axe con etiquetas `wcag2a`, `wcag2aa`, `wcag21aa`.
 - Todas las rutas incluyen `noindex, nofollow`. El sitio es accesible públicamente; esto no prueba que exista protección de acceso.
-- Revisión del propietario en su celular: **sin resultado confirmado**; su mensaje conservaba el texto de plantilla.
+- Revisión del propietario: **iPhone 17, «todo bien»**. Redmi 15C (Android de gama media): **resultado pendiente**, porque el mensaje mantiene las alternativas de una plantilla; no se registra como aprobado.
 
 **No usar la API de Vercel.** La verificación se realizó sobre la URL pública y GitHub Actions, sin invocar dicha API ni cambiar la configuración del proveedor.
 
@@ -122,7 +141,7 @@ Playwright/axe pasó remotamente en escritorio y móvil de 360 px. Esto no certi
 
 ## Cierre y autorización
 
-Demo de staging, CI remoto y recepción/indexación del error de Sentry verificados. Para el cierre formal sigue pendiente la confirmación de los dos proyectos Supabase Free independientes exigidos por el alcance. La revisión en celular del propietario no se presupone aprobada.
+**Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C queda pendiente como observación, no como prueba aprobada. La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
 
 La etapa 2 **no está iniciada** y necesita aprobación explícita. Para preparar su ejecución se requerirán los proyectos Supabase de desarrollo/staging y su configuración segura, habilitación de correo/Google en Supabase Auth, identidad verificada del superadmin y validación de los textos mínimos de consentimiento y del responsable de datos. No enviar credenciales por chat ni cargar variables de etapa 2 antes de autorizarla.
 
