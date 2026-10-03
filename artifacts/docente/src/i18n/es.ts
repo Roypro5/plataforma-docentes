@@ -1,3 +1,5 @@
+import { cuenta } from "./es-cuenta";
+
 export const es = {
   shell: {
     skip: "Saltar al contenido",
@@ -5,14 +7,15 @@ export const es = {
     mobileNavLabel: "Navegación inferior",
     breadcrumbLabel: "Ruta de navegación",
     home: "Inicio",
-    stageBadge: "Etapa 1 de 5 · Fundamentos",
-    footer: "Versión de demostración. No guarda datos ni ofrece servicios activos.",
+    stageBadge: "Etapa 2 de 5 · Cuentas",
+    footer: "Versión de prueba. No uses datos personales reales: el entorno no está habilitado para usuarios reales.",
   },
   nav: {
     inicio: { label: "Inicio", short: "Inicio", desc: "Bienvenida y visión" },
     sistema: { label: "Sistema visual", short: "Sistema", desc: "Componentes vivos" },
     ruta: { label: "Hoja de ruta", short: "Ruta", desc: "Las cinco etapas" },
     ayuda: { label: "Ayuda y alcance", short: "Ayuda", desc: "Preguntas frecuentes" },
+    cuenta: { label: "Mi cuenta", short: "Cuenta", desc: "Perfil e ingreso" },
   },
   theme: {
     label: "Tema de color",
@@ -26,9 +29,9 @@ export const es = {
     title: "Un espacio de trabajo pensado para quien enseña.",
     lead:
       "Estamos construyendo una plataforma en español para planificar, organizar y acompañar el trabajo docente, ligera para funcionar bien en celulares Android de gama media.",
-    honestTitle: "Lo que ves hoy es la etapa 1",
+    honestTitle: "Lo que ves hoy es la etapa 2",
     honest:
-      "Esta versión muestra los cimientos: diseño, navegación, accesibilidad y tema de color. Todavía no hay cuentas, aulas, ni datos guardados.",
+      "Esta versión añade cuentas de prueba: registro, ingreso, perfil docente y eliminación de cuenta. Todavía no hay dashboard, módulos ni pagos.",
     ctaSystem: "Explorar el sistema visual",
     ctaRoadmap: "Ver la hoja de ruta",
     principlesTitle: "Principios que guían el diseño",
@@ -46,12 +49,12 @@ export const es = {
       { title: "Marketplace de materiales", stage: "Fase futura" },
       { title: "Cursos y simulacros", stage: "Fase futura" },
     ],
-    statusTitle: "Estado de la etapa 1",
+    statusTitle: "Estado de la etapa 2",
     status: [
-      { label: "Estructura de navegación", done: true },
-      { label: "Tema claro, oscuro y del sistema", done: true },
-      { label: "Componentes base", done: true },
-      { label: "Staging, conexiones y CI remoto", done: false },
+      { label: "Base, diseño, CI y staging (etapa 1)", done: true },
+      { label: "Esquema de datos y RLS con pruebas negativas", done: false },
+      { label: "Registro, ingreso, perfil y onboarding", done: false },
+      { label: "MFA administrativo y eliminación de cuenta", done: false },
     ],
     done: "Listo",
     pending: "Pendiente",
@@ -105,11 +108,12 @@ export const es = {
   ruta: {
     eyebrow: "Hoja de ruta",
     title: "Cinco etapas aprobadas",
-    lead: "Avanzamos por etapas para entregar algo sólido en cada paso. Solo la etapa 1 está en curso.",
+    lead: "Avanzamos por etapas para entregar algo sólido en cada paso. La etapa 1 está cerrada y la etapa 2 está en curso.",
     current: "En curso",
+    closed: "Cerrada",
     next: "Planificada",
     stages: [
-      { n: 1, title: "Base y sistema de diseño", body: "Repositorio, diseño, navegación, temas, CI y staging. Las conexiones externas siguen pendientes." },
+      { n: 1, title: "Base y sistema de diseño", body: "Repositorio, diseño, navegación, temas, CI y staging. Cerrada." },
       { n: 2, title: "Auth, perfil y onboarding", body: "Correo y Google, MFA administrativo, onboarding y estructura de organizaciones con RLS y pruebas negativas." },
       { n: 3, title: "Módulos y dashboard docente", body: "Registro de módulos, interés «Avísame», avisos, notificaciones in-app y estados vacíos. Sin generador IA." },
       { n: 4, title: "Panel de administración", body: "Usuarios, organizaciones de prueba, módulos, avisos, catálogos, auditoría y métricas SQL." },
@@ -121,13 +125,15 @@ export const es = {
     title: "Alcance y preguntas frecuentes",
     lead: "Respuestas directas sobre lo que esta versión hace y lo que todavía no.",
     faq: [
-      { q: "¿Puedo crear una cuenta?", a: "No. Las cuentas llegan en la etapa 2. Esta versión no pide ni guarda datos personales." },
+      { q: "¿Puedo crear una cuenta?", a: "Sí, en este entorno de prueba. No uses datos personales reales: aún no está habilitado para usuarios reales y los textos legales están en revisión." },
       { q: "¿Se guarda lo que escribo en el sistema visual?", a: "No. Los controles son demostraciones locales y se reinician al recargar la página." },
-      { q: "¿Qué se recuerda en mi dispositivo?", a: "Solo tu preferencia de tema: claro, oscuro o del sistema." },
+      { q: "¿Qué se recuerda en mi dispositivo?", a: "Tu preferencia de tema y, si ingresas, las cookies de sesión necesarias para mantenerte conectado." },
       { q: "¿Funciona en mi celular?", a: "Está diseñada para celulares Android de gama media y pantallas desde 360 píxeles de ancho." },
-      { q: "¿Hay pagos o suscripciones?", a: "No. Esta etapa no incluye pagos, notificaciones ni gestión administrativa." },
+      { q: "¿Hay pagos o suscripciones?", a: "No. Esta etapa no incluye pagos, notificaciones ni panel administrativo." },
+      { q: "¿Puedo borrar mi cuenta?", a: "Sí. Desde Mi cuenta puedes eliminarla: se borran tu perfil y tu acceso." },
     ],
     contactTitle: "Contacto",
     contactPending: "Los canales oficiales de contacto se publicarán más adelante. Por ahora no hay correo ni teléfono habilitados.",
   },
+  cuenta,
 } as const;

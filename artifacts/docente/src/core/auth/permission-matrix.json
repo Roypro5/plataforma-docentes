@@ -1,0 +1,8 @@
+{
+  "docente": ["org.read"],
+  "creador": [],
+  "director": ["org.read", "org.members.read"],
+  "revisor": [],
+  "admin": ["admin.access", "admin.users.suspend", "admin.roles.grant"],
+  "superadmin": ["admin.access", "admin.users.suspend", "admin.roles.grant", "admin.roles.grant_privileged"]
+}

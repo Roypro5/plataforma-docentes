@@ -17,7 +17,7 @@ export default function Ruta() {
               <div className={`paper min-w-0 flex-1 rounded-2xl border p-5 ${cur ? "border-accent/50" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-display text-xl font-semibold">{s.title}</h2>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cur ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground"}`}>{cur ? t.current : t.next}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cur ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground"}`}>{cur ? t.current : s.n < product.stage ? t.closed : t.next}</span>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
               </div>

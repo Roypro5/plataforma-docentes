@@ -1,6 +1,6 @@
 # Alcance aprobado y límites de construcción
 
-Fuente: Fase 0 revisión 0.2 aprobada y ajustes posteriores del usuario.
+Fuente: [Fase 0 revisión 0.2](fase-0-rev-0.2.md) aprobada y ajustes posteriores del usuario. Si hay conflicto, este documento prevalece.
 
 ## Decisiones obligatorias
 

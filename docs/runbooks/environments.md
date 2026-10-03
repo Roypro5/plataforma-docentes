@@ -37,15 +37,17 @@ Las variables `NEXT_PUBLIC_*` se incorporan al JavaScript durante el build: camb
 - `SENTRY_AUTH_TOKEN`: no se necesita; no hay subida de sourcemaps configurada.
 - Tokens de Vercel o GitHub: no son variables de ejecución de la app y no se necesitan para que el propietario conecte su repositorio a Vercel.
 
-### Variables previstas para etapa 2 — no cargar todavía
+### Variables de etapa 2
+
+Pasos completos en [supabase-etapa-2.md](supabase-etapa-2.md).
 
 | Variable | Visibilidad | Uso futuro |
 |---|---|---|
 | NEXT_PUBLIC_SUPABASE_URL | Pública | URL del proyecto Supabase de staging, separado del de desarrollo |
 | NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | Pública | Clave publicable del mismo proyecto; el acceso a datos debe quedar protegido por RLS |
-| SUPABASE_SERVICE_ROLE_KEY | Secreta, solo servidor, únicamente si resulta necesaria | Operaciones privilegiadas controladas; nunca prefijo NEXT_PUBLIC ni acceso desde navegador |
+| SUPABASE_SERVICE_ROLE_KEY | — | **No se usa.** La eliminación de cuentas y las acciones administrativas son funciones SQL autorizadas; no cargar esta clave |
 
-Estos nombres futuros están documentados, pero el código de etapa 1 no los consume. No cargar una clave privilegiada por adelantado. Introducir secretos solo en los gestores de variables del proveedor, no en chat, archivos versionados ni logs.
+Sin estas variables la app muestra un aviso explícito de «cuentas no conectadas» y no simula sesiones. Introducir secretos solo en los gestores de variables del proveedor, no en chat, archivos versionados ni logs.
 
 ## Supabase Free
 

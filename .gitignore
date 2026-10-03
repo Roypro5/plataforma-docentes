@@ -55,3 +55,6 @@ Thumbs.db
 !.env.example
 playwright-report/
 test-results/
+
+# Claude Code local preview config (machine-specific paths)
+.claude/launch.json

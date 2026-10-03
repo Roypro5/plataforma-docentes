@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "next-themes";
 import { useSyncExternalStore, type ReactNode } from "react";
-import { BookOpen, HelpCircle, Home, Map, Monitor, Moon, Palette, Sun } from "lucide-react";
+import { BookOpen, HelpCircle, Home, Map, Monitor, Moon, Palette, Sun, UserRound } from "lucide-react";
 import { es } from "@/i18n/es";
 import { product } from "@/config/product";
 
@@ -13,6 +13,7 @@ export const navItems = [
   { href: "/sistema", key: "sistema", icon: Palette },
   { href: "/hoja-de-ruta", key: "ruta", icon: Map },
   { href: "/ayuda", key: "ayuda", icon: HelpCircle },
+  { href: "/perfil", key: "cuenta", icon: UserRound },
 ] as const;
 
 export function FoundationProvider({ children }: { children: ReactNode }) {
@@ -136,7 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label={es.shell.mobileNavLabel} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav aria-label={es.shell.mobileNavLabel} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {navItems.map((n) => {
           const on = isActive(path, n.href);
           return (
@@ -147,7 +148,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               data-testid={`link-mobile-${n.key}`}
               className={`flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${on ? "text-primary" : "text-muted-foreground"}`}
             >
-              <span className={`grid h-8 w-12 place-items-center rounded-full transition-colors ${on ? "bg-primary-soft" : ""}`}>
+              <span className={`grid h-8 w-11 place-items-center rounded-full transition-colors ${on ? "bg-primary-soft" : ""}`}>
                 <n.icon className="h-5 w-5" aria-hidden />
               </span>
               {es.nav[n.key].short}
