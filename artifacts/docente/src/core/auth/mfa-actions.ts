@@ -13,7 +13,7 @@ export type EnrollState = { factorId: string; qr: string; secret: string } | { e
 
 async function adminClient() {
   const viewer = await getViewer();
-  if (viewer.state !== "signed-in" || !viewerCan(viewer, "admin.access")) redirect("/perfil");
+  if (viewer.state !== "signed-in" || !viewerCan(viewer, "admin.access")) redirect("/panel");
   return (await createSupabaseServerClient())!;
 }
 

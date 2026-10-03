@@ -34,6 +34,6 @@ git checkout -- artifacts/docente/next-env.d.ts 2>/dev/null   # el build lo rege
 
 ## 3. Reportar
 
-Una línea por comprobación con su resultado y conteo (por ejemplo `test:rls 31/31`). Si algo falla, el error literal y la causa probable. No declares aprobado nada que no se haya ejecutado.
+Una línea por comprobación con su resultado y conteo (por ejemplo `test:rls 45/45`; el total crece con cada etapa). Si algo falla, el error literal y la causa probable. No declares aprobado nada que no se haya ejecutado.
 
 Para correrlo en segundo plano mientras se sigue trabajando, delega en el agente `verifier`.

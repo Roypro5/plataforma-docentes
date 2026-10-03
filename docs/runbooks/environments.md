@@ -27,7 +27,7 @@ El propietario confirmó que ambas variables están cargadas en **Production and
 
 La rama `main` utiliza el contexto que Vercel denomina **Production** dentro de un proyecto dedicado exclusivamente al staging. Ese nombre de Vercel no convierte este proyecto en la producción real del producto.
 
-Las variables `NEXT_PUBLIC_*` se incorporan al JavaScript durante el build: cambiarlas exige un nuevo despliegue y nunca deben contener secretos. `NEXT_PUBLIC_APP_ENV` solo etiqueta la telemetría en la implementación actual: no configura aislamiento de bases ni constituye un control de acceso.
+Las variables `NEXT_PUBLIC_*` se incorporan al JavaScript durante el build: cambiarlas exige un nuevo despliegue y nunca deben contener secretos. `NEXT_PUBLIC_APP_ENV` etiqueta la telemetría y, desde la etapa 3, **oculta los módulos de solo desarrollo** (el módulo demo) cuando vale `production`; un valor ausente o desconocido cuenta como `production`. No configura aislamiento de bases. El proyecto Vercel de staging usa `staging` también en su ámbito «Production»; el futuro proyecto de producción real debe usar `production` o dejarla sin definir. Segunda defensa: la disponibilidad del demo solo existe en `supabase/seed.sql`, que nunca se aplica en producción.
 
 ### No cargar en Vercel en etapa 1
 

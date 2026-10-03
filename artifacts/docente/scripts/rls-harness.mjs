@@ -621,17 +621,43 @@ try {
     await as(ids.b);
     await q("SELECT public.register_module_interest('biblioteca')");
     await q("RESET ROLE");
+    // Active without implementation is still coming_soon for users: no notification yet.
     await q("UPDATE modules SET status = 'active' WHERE id = 'marketplace'");
+    assert(await count("SELECT 1 FROM notifications WHERE kind = 'module_available'") === 0, "notified before the module is usable");
+    await as(ids.a);
+    assert(accessOf(await myModules()).marketplace === "coming_soon", "active without implementation must stay coming_soon");
+    await q("RESET ROLE");
+    // The director is suspended before the module becomes usable: not notified.
+    await q("UPDATE users SET status = 'suspended' WHERE id = $1", [ids.director]);
+    await q("UPDATE modules SET implementation_available = true WHERE id = 'marketplace'");
     await q("UPDATE modules SET sort_order = 31 WHERE id = 'marketplace'");
     await q("UPDATE modules SET status = 'coming_soon' WHERE id = 'marketplace'");
     await q("UPDATE modules SET status = 'active' WHERE id = 'marketplace'");
     const { rows } = await q("SELECT user_id, link_path, dedupe_key FROM notifications WHERE kind = 'module_available' ORDER BY user_id");
-    const expected = [ids.a, ids.director].sort();
+    const expected = [ids.a];
     assert(JSON.stringify(rows.map((r) => r.user_id).sort()) === JSON.stringify(expected), `notified ${rows.map((r) => r.user_id)}`);
     assert(rows.every((r) => r.link_path === "/modulos/marketplace" && r.dedupe_key === "module_available:marketplace"), "wrong link or dedupe key");
     await as(ids.a);
     assert(await count("SELECT 1 FROM notifications WHERE kind = 'module_available'") === 1, "A should see own notification");
-    assert(accessOf(await myModules()).marketplace === "coming_soon", "active without implementation must stay coming_soon");
+    assert(accessOf(await myModules()).marketplace === "available", "usable module must be available");
+  });
+
+  await test("abuse limits: repeated RPCs do not grow activity or duplicate consent", async () => {
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    for (let i = 0; i < 5; i++) {
+      await q("SELECT public.record_session_started()");
+      await q("SELECT public.register_module_interest('biblioteca')");
+      await q("SELECT public.withdraw_module_interest('biblioteca')");
+    }
+    await q("INSERT INTO consent_records (user_id, document, version) VALUES ($1, 'terminos', 'v-dup')", [ids.a]);
+    await expectError("INSERT INTO consent_records (user_id, document, version) VALUES ($1, 'terminos', 'v-dup')", [ids.a], "23505");
+    await expectError("SELECT author_user_id FROM announcements");
+    assert((await q("SELECT id, title FROM announcements")).rowCount >= 1, "announcement columns used by the app must stay readable");
+    await q("RESET ROLE");
+    const { rows } = await q("SELECT kind, count(*)::int AS n FROM activity_events WHERE user_id = $1 GROUP BY kind ORDER BY kind", [ids.a]);
+    const byKind = Object.fromEntries(rows.map((r) => [r.kind, r.n]));
+    assert(byKind["session.started"] === 1 && byKind["module.interest_added"] === 1 && byKind["module.interest_removed"] === 1, "activity not deduplicated: " + JSON.stringify(byKind));
   });
 
   await test("activity: no client read or write; session start recorded for active users", async () => {

@@ -104,7 +104,7 @@ export async function resetPasswordAction(_: FormState, form: FormData): Promise
   if (error?.code === "insufficient_aal") return { error: t.restablecer.invalidCode };
   if (error?.code === "reauthentication_needed") return { error: t.restablecer.reauth };
   if (error) return { error: t.common.genericError };
-  redirect("/perfil");
+  redirect("/panel");
 }
 
 export async function signOutAction() {

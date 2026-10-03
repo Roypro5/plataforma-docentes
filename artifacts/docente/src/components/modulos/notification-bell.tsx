@@ -21,6 +21,13 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   useEffect(() => {
     let cancelled = false;
     const refresh = () => {
+      // @supabase/ssr keeps the session in sb-<ref>-auth-token cookies (readable by JS, possibly
+      // chunked). Without one there is nothing to count, so skip the server round trip.
+      const hasSession = document.cookie.split("; ").some((c) => c.startsWith("sb-") && c.includes("-auth-token"));
+      if (!hasSession) {
+        setCount(null);
+        return;
+      }
       getUnreadCountAction()
         .then((value) => {
           if (!cancelled) setCount(value);

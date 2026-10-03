@@ -5,11 +5,11 @@ import { product } from "@/config/product";
 
 export const metadata: Metadata = {
   title: { default: `${product.name} · Tu espacio docente`, template: `%s · ${product.name}` },
-  description: "Base de la plataforma para docentes peruanos. Demostración de la etapa 1, sin cuentas ni cobros.",
+  description: "Plataforma para docentes peruanos. Versión de prueba en desarrollo, sin cobros.",
   robots: { index: false, follow: false },
   openGraph: {
     title: `${product.name} · Tu espacio docente`,
-    description: "Un espacio pensado para acompañar tu trabajo docente. Etapa 1 en desarrollo.",
+    description: "Un espacio pensado para acompañar tu trabajo docente. Versión de prueba en desarrollo.",
     locale: "es_PE",
     type: "website",
   },

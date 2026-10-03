@@ -8,7 +8,8 @@ import { requireActiveViewer } from "@/core/auth/viewer";
 import { listMyModules } from "@/core/modules/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { es } from "@/i18n/es";
-import { isModuleId } from "@/modules/registry";
+import { resolveAppEnv } from "@/core/modules/access";
+import { getModuleManifest, isModuleId } from "@/modules/registry";
 
 export const metadata = { title: "Módulo" };
 
@@ -19,6 +20,8 @@ const t = es.modulos;
 export default async function Modulo({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isModuleId(id)) notFound();
+  // The environment rule does not depend on the database answering.
+  if (getModuleManifest(id)?.devOnly && resolveAppEnv(process.env.NEXT_PUBLIC_APP_ENV) === "production") notFound();
   await requireActiveViewer();
   const supabase = (await createSupabaseServerClient())!;
   const { modules, failed } = await listMyModules(supabase);

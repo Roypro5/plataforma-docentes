@@ -7,7 +7,7 @@ Pasos que hace el **propietario** en los paneles de Supabase, Google Cloud y Ver
 Archivos:
 
 - `supabase/migrations/20261003000100_stage2_identity.sql`: esquema, privilegios, RLS y funciones. Va a **todos** los entornos.
-- `supabase/seed.sql`: territorio **sintético** y catálogo educativo **preliminar**. Solo para desarrollo y staging, **nunca** producción.
+- `supabase/seed.sql`: territorio **sintético**, catálogo educativo **preliminar** y, desde la etapa 3, la disponibilidad del módulo demo y un «Aviso de prueba». Solo para desarrollo y staging, **nunca** producción: en producción haría visibles el demo (bloqueado) y el aviso de prueba.
 
 Opción A, panel: Supabase → proyecto → **SQL Editor** → pegar el contenido completo de la migración → Run. Después, en una consulta nueva, pegar `seed.sql` → Run.
 

@@ -76,5 +76,7 @@ export async function getUnreadCountAction(): Promise<number | null> {
   if (!supabase) return null;
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims?.sub) return null;
+  const { data: user } = await supabase.from("users").select("status").eq("id", data.claims.sub).maybeSingle();
+  if (user?.status !== "active") return null;
   return countUnread(supabase);
 }

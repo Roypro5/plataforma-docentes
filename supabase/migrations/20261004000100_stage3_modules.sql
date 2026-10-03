@@ -234,13 +234,22 @@ as $$
     )
 $$;
 
--- Inserción de actividad: solo desde funciones y triggers autorizados.
+-- Inserción de actividad: solo desde funciones y triggers autorizados. Se descarta un
+-- evento igual (usuario, tipo y módulo) dentro de la ventana, para que repetir una RPC en
+-- bucle no haga crecer la tabla sin límite ni contamine las métricas: 30 minutos para
+-- sesiones y 24 horas para intereses.
 create function app_private.record_activity(p_user uuid, p_kind text, p_module text default null)
 returns void
 language sql security definer
 set search_path = ''
 as $$
-  insert into public.activity_events (user_id, kind, module_id) values (p_user, p_kind, p_module)
+  insert into public.activity_events (user_id, kind, module_id)
+  select p_user, p_kind, p_module
+  where not exists (
+    select 1 from public.activity_events e
+    where e.user_id = p_user and e.kind = p_kind and e.module_id is not distinct from p_module
+      and e.created_at > now() - case when p_kind = 'session.started' then interval '30 minutes' else interval '24 hours' end
+  )
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -290,7 +299,7 @@ begin
   insert into public.notifications (user_id, kind, title, body, link_path, dedupe_key)
   values (
     new.user_id, 'welcome', 'Te damos la bienvenida',
-    'Tu perfil está listo. En el panel verás los módulos y avisos que te corresponden.',
+    'Tu perfil docente está listo. Desde el panel puedes ver los módulos que estamos preparando.',
     '/panel', 'welcome'
   )
   on conflict (user_id, dedupe_key) do nothing;
@@ -305,7 +314,10 @@ create trigger profiles_onboarding_completed after update of onboarding_complete
   when (old.onboarding_completed_at is null and new.onboarding_completed_at is not null)
   execute function app_private.on_onboarding_completed();
 
--- Módulo que pasa a activo: aviso in-app (deduplicado) a cada usuario con interés.
+-- Módulo que pasa a utilizable (activo, implementado y sin apagado): aviso in-app
+-- deduplicado solo a los interesados para quienes de verdad queda disponible: usuario
+-- activo, disponibilidad en el país de su perfil y sin derecho requerido (hasta la etapa 5
+-- ningún derecho está vigente). Así nunca se anuncia algo que el resolvedor bloquearía.
 create function app_private.on_module_activated()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
@@ -314,15 +326,40 @@ begin
     'Un módulo por el que pediste aviso ya está disponible.',
     '/modulos/' || new.id, 'module_available:' || new.id
   from public.module_interests i
+  join public.users u on u.id = i.user_id and u.status = 'active'
+  join public.profiles p on p.user_id = i.user_id
+  join public.module_availability a
+    on a.module_id = new.id and a.country_code = p.country_code and a.required_entitlement is null
   where i.module_id = new.id
   on conflict (user_id, dedupe_key) do nothing;
   return null;
 end
 $$;
-create trigger modules_activated after update of status on public.modules
+create trigger modules_activated
+  after update of status, implementation_available, emergency_disabled on public.modules
   for each row
-  when (new.status = 'active' and old.status is distinct from 'active')
+  when (
+    new.status = 'active' and new.implementation_available and not new.emergency_disabled
+    and not (old.status = 'active' and old.implementation_available and not old.emergency_disabled)
+  )
   execute function app_private.on_module_activated();
+
+-- Etapa 2: ConsentRecord admitía inserciones repetidas de la misma versión. Se rechazan
+-- duplicados (usuario, documento, versión) sin tocar registros existentes (append-only).
+create function app_private.reject_duplicate_consent()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if exists (
+    select 1 from public.consent_records c
+    where c.user_id = new.user_id and c.document = new.document and c.version = new.version
+  ) then
+    raise exception 'Esa versión ya fue aceptada' using errcode = '23505';
+  end if;
+  return new;
+end
+$$;
+create trigger consent_records_no_duplicates before insert on public.consent_records
+  for each row execute function app_private.reject_duplicate_consent();
 
 -- ---------------------------------------------------------------------------
 -- Operaciones expuestas (RPC)
@@ -482,7 +519,7 @@ create policy module_interests_delete_own on public.module_interests for delete 
 
 -- Avisos: publicados, vigentes y de la audiencia propia; sin escritura del cliente
 -- (formulario de administración en la etapa 4).
-grant select on public.announcements to authenticated;
+grant select (id, title, body, status, starts_at, ends_at, created_at) on public.announcements to authenticated;
 create policy announcements_read_audience on public.announcements for select to authenticated
   using (
     status = 'published'
