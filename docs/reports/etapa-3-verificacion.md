@@ -1,7 +1,7 @@
 # Etapa 3 — Demo y reporte de verificación
 
 **Autorización:** el propietario autorizó la etapa 3 y aprobó su [plan](../architecture/etapa-3-plan.md), con las 5 decisiones de la sección 11 tal como se recomendaron, el 03/10/2026. Detalle técnico en el [contrato](../architecture/etapa-3-contrato.md).
-**Estado:** implementación desplegada y pruebas aprobadas en staging; **pendiente de aprobación del propietario para cerrar la etapa 3**. La etapa 4 no está iniciada.
+**Estado:** **etapa 3 cerrada** por aprobación del propietario el 03/10/2026, con todas las pruebas aprobadas en staging. El propietario autorizó iniciar la etapa 4 a partir de un plan que debe aprobar antes de implementarse.
 
 **Demo:** https://plataforma-docentesstaging.vercel.app (`/panel`, `/notificaciones`, `/modulos/demo`).
 
@@ -94,4 +94,4 @@ SMTP propio (el integrado envía unos 2 correos por hora), importación del padr
 
 ## Aprobación
 
-La etapa 3 **no está cerrada**: queda pendiente la aprobación explícita del propietario. La etapa 4 no está iniciada.
+La etapa 3 quedó **cerrada** el 03/10/2026 con la aprobación explícita del propietario.
