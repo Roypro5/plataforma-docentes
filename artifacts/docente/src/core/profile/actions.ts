@@ -101,5 +101,5 @@ export async function saveStep3Action(_: FormState, form: FormData): Promise<For
     p_complete: true,
   });
   if (error) return { error: error.code === COHERENCE ? t.errorCoherence : es.cuenta.common.genericError };
-  redirect("/perfil");
+  redirect("/panel");
 }

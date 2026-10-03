@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "next-themes";
 import { useSyncExternalStore, type ReactNode } from "react";
-import { BookOpen, HelpCircle, Home, Map, Monitor, Moon, Palette, Sun, UserRound } from "lucide-react";
+import { BookOpen, HelpCircle, Home, LayoutDashboard, Map, Monitor, Moon, Palette, Sun } from "lucide-react";
+import { NotificationBell } from "@/components/modulos/notification-bell";
 import { es } from "@/i18n/es";
 import { product } from "@/config/product";
 
@@ -13,7 +14,7 @@ export const navItems = [
   { href: "/sistema", key: "sistema", icon: Palette },
   { href: "/hoja-de-ruta", key: "ruta", icon: Map },
   { href: "/ayuda", key: "ayuda", icon: HelpCircle },
-  { href: "/perfil", key: "cuenta", icon: UserRound },
+  { href: "/panel", key: "panel", icon: LayoutDashboard },
 ] as const;
 
 export function FoundationProvider({ children }: { children: ReactNode }) {
@@ -30,7 +31,7 @@ function isActive(path: string, href: string) {
 
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-3" data-testid="link-brand">
+    <Link href="/" className="flex min-w-0 items-center gap-3" data-testid="link-brand">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
         <BookOpen className="h-5 w-5" aria-hidden />
       </span>
@@ -96,7 +97,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col border-r bg-surface/80 px-5 py-6 backdrop-blur md:flex">
         <Brand />
-        <p className="mt-6 inline-flex w-fit rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">{es.shell.stageBadge}</p>
+        <div className="mt-6 flex items-center justify-between gap-2">
+          <p className="inline-flex w-fit rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">{es.shell.stageBadge}</p>
+          <NotificationBell />
+        </div>
         <nav aria-label={es.shell.navLabel} className="mt-8 flex flex-col gap-1">
           {navItems.map((n) => {
             const t = es.nav[n.key];
@@ -127,7 +131,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b bg-surface/90 px-4 py-3 backdrop-blur md:hidden">
         <Brand />
-        <ThemeSwitch compact />
+        <div className="flex shrink-0 items-center gap-2">
+          <NotificationBell />
+          <ThemeSwitch compact />
+        </div>
       </header>
 
       <div className="md:pl-72">

@@ -13,7 +13,7 @@ const t = es.cuenta.registro;
 
 export default async function Registro() {
   const viewer = await getViewer();
-  if (viewer.state === "signed-in") redirect("/perfil");
+  if (viewer.state === "signed-in") redirect("/panel");
   const configured = viewer.state !== "unconfigured";
 
   return (
@@ -29,7 +29,7 @@ export default async function Registro() {
         <span className="h-px flex-1 bg-border" />{es.cuenta.common.or}<span className="h-px flex-1 bg-border" />
       </div>
       <form action={signInWithGoogleAction}>
-        <input type="hidden" name="next" value="/bienvenida" />
+        <input type="hidden" name="next" value="/panel" />
         <button type="submit" disabled={!configured} className={`${btnQuiet} w-full`} data-testid="button-google">{es.cuenta.ingresar.google}</button>
       </form>
     </AuthPage>

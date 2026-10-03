@@ -14,7 +14,7 @@ const t = es.cuenta.suspendida;
 export default async function CuentaSuspendida() {
   const viewer = await getViewer();
   if (viewer.state !== "signed-in") redirect("/ingresar");
-  if (viewer.status === "active") redirect("/perfil");
+  if (viewer.status === "active") redirect("/panel");
   const pending = viewer.status === "deletion_pending";
 
   return (

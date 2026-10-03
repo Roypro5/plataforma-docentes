@@ -24,13 +24,20 @@ describe("routes", () => {
     expect(isProtectedPath("/perfil/eliminar")).toBe(true);
     expect(isProtectedPath("/admin")).toBe(true);
     expect(isProtectedPath("/perfiles")).toBe(false);
+    for (const path of ["/panel", "/notificaciones", "/modulos", "/modulos/demo"]) {
+      expect(isProtectedPath(path)).toBe(true);
+    }
+    for (const path of ["/paneles", "/modulosx", "/notificacionesx"]) {
+      expect(isProtectedPath(path)).toBe(false);
+    }
     expect(isProtectedPath("/ingresar")).toBe(false);
   });
   it("rejects open redirects", () => {
     expect(safeNextPath("/bienvenida?paso=2")).toBe("/bienvenida?paso=2");
     for (const bad of ["//evil.test", "https://evil.test", "/\\evil.test", "javascript:alert(1)", undefined, 42]) {
-      expect(safeNextPath(bad)).toBe("/perfil");
+      expect(safeNextPath(bad)).toBe("/panel");
     }
+    expect(safeNextPath(undefined, "/perfil")).toBe("/perfil");
   });
 });
 

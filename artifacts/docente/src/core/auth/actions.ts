@@ -25,12 +25,22 @@ async function client() {
   return supabase;
 }
 
+// Minimal activity log. A failure here must never block the sign-in.
+async function recordSessionStarted(supabase: Awaited<ReturnType<typeof client>>) {
+  try {
+    await supabase.rpc("record_session_started");
+  } catch {
+    // Ignored on purpose.
+  }
+}
+
 export async function signInAction(_: FormState, form: FormData): Promise<FormState> {
   const parsed = signInSchema.safeParse({ email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: t.ingresar.invalid };
   const supabase = await client();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: t.ingresar.invalid };
+  await recordSessionStarted(supabase);
   redirect(safeNextPath(form.get("next")));
 }
 

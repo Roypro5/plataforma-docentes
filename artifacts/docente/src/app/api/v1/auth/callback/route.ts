@@ -22,7 +22,15 @@ export async function GET(request: NextRequest) {
     } else if (tokenHash && type && otpTypes.includes(type)) {
       ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
     }
-    if (ok) return NextResponse.redirect(new URL(next, url.origin));
+    if (ok) {
+      // Minimal activity log; failures are ignored so they never block the sign-in.
+      try {
+        await supabase.rpc("record_session_started");
+      } catch {
+        // Ignored on purpose.
+      }
+      return NextResponse.redirect(new URL(next, url.origin));
+    }
   }
   return NextResponse.redirect(new URL("/ingresar?error=enlace", url.origin));
 }

@@ -16,6 +16,7 @@ export const es = {
     sistema: { label: "Sistema visual", short: "Sistema", desc: "Componentes vivos" },
     ruta: { label: "Hoja de ruta", short: "Ruta", desc: "Las cinco etapas" },
     ayuda: { label: "Ayuda y alcance", short: "Ayuda", desc: "Preguntas frecuentes" },
+    panel: { label: "Panel", short: "Panel", desc: "Tus módulos y avisos" },
     cuenta: { label: "Mi cuenta", short: "Cuenta", desc: "Perfil e ingreso" },
   },
   theme: {
