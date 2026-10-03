@@ -1,6 +1,6 @@
 # Etapa 3 — Plan: módulos y dashboard docente
 
-**Estado:** propuesta para aprobación del propietario (03/10/2026). No se implementa nada hasta aprobarla.
+**Estado:** **aprobado por el propietario el 03/10/2026**, incluidas las 5 decisiones de la sección 11 tal como se recomendaron. Detalle técnico en [etapa-3-contrato.md](etapa-3-contrato.md).
 **Fuentes:** [Fase 0 rev 0.2](fase-0-rev-0.2.md) §3 y §6 (etapa 3) y [alcance aprobado](approved-scope.md), que prevalece.
 
 ## 1. Qué se entrega
@@ -56,7 +56,7 @@ Orden de comprobación: sesión y usuario activo → estado del módulo → paí
 | Requiere plan | Tarjeta bloqueada, sin precios (la compra llega en la etapa 5) | No |
 | Apagado | Tarjeta «No disponible temporalmente» | No |
 
-La misma regla existe en SQL para que RLS y las funciones la apliquen, y una prueba compara ambas versiones, igual que la matriz de permisos.
+La regla vive **solo en SQL** (`app_private.module_access`) y la app lee su resultado; la app únicamente añade la regla de entorno. Así no hay dos versiones que puedan divergir (precisado en el contrato técnico).
 
 ## 5. Módulos iniciales
 
