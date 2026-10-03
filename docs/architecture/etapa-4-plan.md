@@ -1,6 +1,6 @@
 # Etapa 4 — Plan: administración mínima
 
-**Estado:** propuesta para aprobación del propietario (03/10/2026). No se implementa nada hasta aprobarla.
+**Estado:** **aprobado** por el propietario el 03/10/2026, con las 6 decisiones de la sección 8 tal como se recomiendan. Contrato técnico: [etapa-4-contrato.md](etapa-4-contrato.md).
 **Fuentes:** [Fase 0 rev 0.2](fase-0-rev-0.2.md) §4 y §6 (etapa 4) y [alcance aprobado](approved-scope.md), que prevalece.
 
 ## 1. Qué se entrega
