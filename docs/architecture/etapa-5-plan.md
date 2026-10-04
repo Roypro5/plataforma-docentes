@@ -1,6 +1,6 @@
 # Etapa 5 — Plan: planes sandbox, módulo demo y pruebas finales
 
-**Estado:** propuesta para aprobación del propietario (03/10/2026). No se implementa nada hasta aprobarla.
+**Estado:** **aprobado** por el propietario el 03/10/2026, con las 6 decisiones de la sección 8 tal como se recomiendan. Contrato técnico: [etapa-5-contrato.md](etapa-5-contrato.md).
 **Fuentes:** [Fase 0 rev 0.2](fase-0-rev-0.2.md) §2, §3, §4 y §6 (etapa 5), y el [alcance aprobado](approved-scope.md), que prevalece.
 
 ## 1. Qué se entrega

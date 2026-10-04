@@ -141,6 +141,14 @@ El harness SQL prueba que la infraestructura de CI detecta violaciones RLS de le
 
 Playwright/axe pasó remotamente en escritorio y móvil de 360 px. Esto no certifica WCAG completo ni sustituye una revisión manual. Mantener las ejecuciones dentro de las cuotas gratuitas de Actions.
 
+### E2E contra staging (etapa 5)
+
+Workflow `.github/workflows/e2e-staging.yml`, solo de ejecución manual (`workflow_dispatch`). Usa tres secrets de GitHub Actions: `E2E_BASE_URL`, `E2E_DOCENTE_EMAIL` y `E2E_DOCENTE_PASSWORD`, de una cuenta docente de prueba de staging, nunca de una cuenta real. Guía completa y checklist manual en [e2e-staging.md](e2e-staging.md).
+
+### Pagos de prueba (sandbox)
+
+La pasarela de prueba solo funciona donde se aplicó `supabase/seed.sql`, que redefine `app_private.sandbox_enabled()` para que devuelva `true`. En producción el seed nunca se aplica, así que la función sigue en `false` y la base rechaza iniciar o resolver pagos.
+
 ## Cierre y autorización
 
 **Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C quedó pendiente como observación en ese cierre y se resolvió el 03/10/2026 (etapa 3). La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
@@ -150,3 +158,5 @@ La etapa 2 **no está iniciada** y necesita aprobación explícita. Para prepara
 ## Lanzamiento futuro
 
 Solo por autorización posterior: Supabase Pro + Vercel Pro, sin PITR. Base orientativa US$45, no presupuesto máximo aprobado. RPO 24h/RTO 8h son objetivos, no restauración verificada.
+
+Comprobación obligatoria en el proyecto Supabase de producción, después de aplicar las migraciones y antes de abrirlo a usuarios: `select app_private.sandbox_enabled();` debe devolver `false`. Si devuelve `true`, alguien aplicó `supabase/seed.sql`: no abrir el entorno y revertirlo antes de seguir. Además, `NEXT_PUBLIC_APP_ENV` debe valer `production` (o no estar definida), con lo que la app tampoco ofrece pagos de prueba.

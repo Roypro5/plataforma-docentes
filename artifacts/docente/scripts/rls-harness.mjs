@@ -719,6 +719,10 @@ try {
     admin_metric_distribution: ["SELECT * FROM public.admin_metric_distribution('region')"],
     admin_metric_module_interest: ["SELECT * FROM public.admin_metric_module_interest()"],
     admin_list_audit: ["SELECT * FROM public.admin_list_audit()"],
+    // Etapa 5 (admin.billing.read).
+    admin_list_subscriptions: ["SELECT * FROM public.admin_list_subscriptions()"],
+    admin_list_payments: ["SELECT * FROM public.admin_list_payments()"],
+    admin_metric_conversion: ["SELECT * FROM public.admin_metric_conversion()"],
   };
   // Functions that write audit_logs (mutations plus reads of personal data): never stable.
   const auditingFunctions = [
@@ -726,6 +730,7 @@ try {
     "admin_save_announcement", "admin_publish_announcement", "admin_unpublish_announcement",
     "admin_rename_catalog_item", "admin_set_catalog_item_active", "admin_create_test_org", "admin_set_org_status",
     "admin_list_org_members", "admin_add_org_member", "admin_remove_org_member",
+    "admin_list_subscriptions", "admin_list_payments",
   ];
   const asAdmin = () => as(ids.admin, { aal: "aal2" });
   const canon = (o) => JSON.stringify(Object.keys(o ?? {}).sort().map((k) => [k, o[k]]));
@@ -1119,6 +1124,9 @@ try {
     await auditedCall("SELECT * FROM public.admin_list_org_members($1)", [org], { action: "org.members_listed", type: "organization", id: org, details: {} });
     await auditedCall("SELECT public.admin_remove_org_member($1, $2)", [org, ids.a], { action: "org.member_removed", type: "organization", id: org, details: { user_id: ids.a } });
     await auditedCall("SELECT public.admin_set_org_status($1, 'inactive')", [org], { action: "org.status_changed", type: "organization", id: org, details: { status: "inactive" } });
+    // Etapa 5: the billing lists expose emails, so they are audited (filters only, redacted).
+    await auditedCall("SELECT * FROM public.admin_list_subscriptions('active', 'individual', 1)", [], { action: "billing.subscriptions_listed", type: "subscription", details: { status: "active", plan: "individual", page: 1 } });
+    await auditedCall("SELECT * FROM public.admin_list_payments()", [], { action: "billing.payments_listed", type: "payment", details: { status: null, page: 1 } });
 
     // Reads without personal data are not audited (the audit list does not audit itself).
     for (const sql of [
@@ -1134,6 +1142,7 @@ try {
       "SELECT * FROM public.admin_metric_distribution('level')",
       "SELECT * FROM public.admin_metric_module_interest()",
       "SELECT * FROM public.admin_list_audit()",
+      "SELECT * FROM public.admin_metric_conversion()",
     ]) {
       await auditedCall(sql, [], null);
     }
@@ -1361,6 +1370,614 @@ try {
     await save("x".repeat(120), "x".repeat(2000), null);
     await q("RESET ROLE");
     assert(await count("SELECT 1 FROM module_availability WHERE module_id = 'biblioteca' AND country_code = 'PE' AND required_entitlement = 'demo.access'") === 1, "entitlement row changed");
+  });
+
+  // --- Etapa 5: planes sandbox, checkout de prueba, Mi plan, demo e inspección admin. ---
+  // The harness applies seed.sql, so the sandbox is enabled here (dev/staging). setSandbox(false)
+  // simulates production inside the current test's savepoint.
+  const migration5 = readFileSync(join(supabaseDir, "migrations/20261006000100_stage5_billing.sql"), "utf8");
+  const setSandbox = async (enabled) => {
+    await q("RESET ROLE");
+    await q(`CREATE OR REPLACE FUNCTION app_private.sandbox_enabled() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $fn$ SELECT ${enabled ? "true" : "false"} $fn$`);
+  };
+  const personalWs = async (user) => (await q("SELECT id FROM workspaces WHERE kind = 'personal' AND owner_user_id = $1", [user])).rows[0].id;
+  // Starts an Individual checkout as the user (profile country PE); the session stays as that user.
+  const startCheckout = async (user) => {
+    await q("RESET ROLE");
+    await setCountry(user, "PE");
+    await as(user);
+    return (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+  };
+  const resolvePayment = async (payment, result) => (await q("SELECT public.sandbox_resolve_payment($1, $2) AS status", [payment, result])).rows[0].status;
+  const buyIndividual = async (user) => {
+    const payment = await startCheckout(user);
+    assert(await resolvePayment(payment, "approved") === "approved", "approval failed");
+    return payment;
+  };
+  const myPlan = async () => (await q("SELECT * FROM public.my_plan()")).rows;
+  const demoOf = async () => accessOf(await myModules()).demo;
+  // Moves the period of the user's active subscription (dates adjusted as the owner).
+  const endPeriod = async (user, end = "now() - interval '1 second'") => {
+    await q("RESET ROLE");
+    await q(`UPDATE subscriptions SET current_period_start = now() - interval '2 months', current_period_end = ${end} WHERE workspace_id = $1 AND status = 'active'`, [await personalWs(user)]);
+  };
+  // One call per new user function; each needs only an active user to pass the first check.
+  const userBillingCalls = {
+    sandbox_available: ["SELECT public.sandbox_available()"],
+    list_plans: ["SELECT * FROM public.list_plans()"],
+    start_checkout: ["SELECT public.start_checkout('individual')"],
+    sandbox_resolve_payment: ["SELECT public.sandbox_resolve_payment(gen_random_uuid(), 'approved')"],
+    get_payment: ["SELECT * FROM public.get_payment(gen_random_uuid())"],
+    my_plan: ["SELECT * FROM public.my_plan()"],
+    list_my_payments: ["SELECT * FROM public.list_my_payments()"],
+    cancel_subscription: ["SELECT public.cancel_subscription()"],
+    resume_subscription: ["SELECT public.resume_subscription()"],
+  };
+  // Write (checkout, resolution, cancellation or lazy expiry) or audit: never stable.
+  const writingBillingFunctions = ["start_checkout", "sandbox_resolve_payment", "get_payment", "my_plan", "list_my_payments", "cancel_subscription", "resume_subscription", "admin_list_subscriptions", "admin_list_payments"];
+  const billingHelpers = ["sandbox_enabled", "personal_workspace_id", "require_active_user", "expire_stale", "has_entitlement", "current_plan_code"];
+  const billingTriggers = ["plan_price_immutable", "check_subscription", "check_payment"];
+
+  await test("billing schema: 26 tables with RLS; no client privileges on subscriptions/payments; plan catalog read-only", async () => {
+    const tables = (await q("SELECT relname, relrowsecurity FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' ORDER BY 1")).rows;
+    assert(tables.length === 26, `expected 26 tables, got ${tables.length}: ${tables.map((t) => t.relname)}`);
+    assert(tables.every((t) => t.relrowsecurity), `tables without RLS: ${tables.filter((t) => !t.relrowsecurity).map((t) => t.relname)}`);
+    const { rows } = await q(`SELECT t, r, has_table_privilege(r, 'public.' || t, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS any_priv
+      FROM unnest(array['subscriptions', 'payments']) t, unnest(array['anon', 'authenticated']) r`);
+    assert(rows.every((x) => !x.any_priv), `client privileges on billing tables: ${JSON.stringify(rows.filter((x) => x.any_priv))}`);
+    assert(await count("SELECT 1 FROM information_schema.column_privileges WHERE table_schema = 'public' AND table_name IN ('subscriptions', 'payments') AND grantee IN ('anon', 'authenticated', 'PUBLIC')") === 0, "column privileges on billing tables");
+    assert(await count("SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename IN ('subscriptions', 'payments')") === 0, "billing tables must have no client policies");
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    assert(JSON.stringify((await q("SELECT code FROM plans ORDER BY sort_order")).rows.map((r) => r.code)) === '["gratis","individual"]', "hidden plan readable or visible plan missing");
+    assert(await count("SELECT 1 FROM plan_prices") === 1 && await count("SELECT 1 FROM plan_entitlements") === 1, "price or entitlement rows not readable");
+    for (const sql of [
+      "SELECT 1 FROM subscriptions", "SELECT 1 FROM payments",
+      "INSERT INTO subscriptions (workspace_id) VALUES (gen_random_uuid())", "UPDATE payments SET status = 'approved'", "DELETE FROM subscriptions",
+      "UPDATE plans SET visible = true", "INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('individual', 'PE', 'PEN', 1, 'month')",
+      "UPDATE plan_prices SET amount_minor = 1", "DELETE FROM plan_entitlements", "INSERT INTO plan_entitlements VALUES ('gratis', 'demo.access')",
+    ]) {
+      await expectError(sql);
+    }
+    await asAnon();
+    for (const table of ["plans", "plan_prices", "plan_entitlements", "subscriptions", "payments"]) await expectError(`SELECT 1 FROM public.${table}`);
+  });
+
+  await test("billing functions: security definer, empty search_path, volatility, explicit grants, row locks; helpers closed to clients", async () => {
+    const publicNames = [...Object.keys(userBillingCalls), "admin_list_subscriptions", "admin_list_payments", "admin_metric_conversion"];
+    const { rows } = await q(`
+      SELECT p.proname, n.nspname, p.prosecdef, p.proconfig, p.provolatile, p.prosrc,
+        has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_exec,
+        has_function_privilege('authenticated', p.oid, 'EXECUTE') AS auth_exec,
+        EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x WHERE x.grantee = 0) AS public_exec
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE (n.nspname = 'public' AND p.proname = ANY ($1)) OR (n.nspname = 'app_private' AND p.proname = ANY ($2))`,
+    [publicNames, [...billingHelpers, ...billingTriggers]]);
+    assert(rows.length === publicNames.length + billingHelpers.length + billingTriggers.length, `billing functions missing: ${rows.map((r) => r.proname)}`);
+    const fn = (name) => rows.find((r) => r.proname === name);
+    for (const r of rows) {
+      assert(!r.anon_exec && !r.public_exec, `${r.nspname}.${r.proname}: anon/PUBLIC can execute`);
+      assert(JSON.stringify(r.proconfig) === JSON.stringify(['search_path=""']), `${r.proname}: search_path ${r.proconfig}`);
+      if (r.nspname === "public") assert(r.auth_exec && r.prosecdef, `${r.proname}: not executable by authenticated or not security definer`);
+      else assert(!r.auth_exec, `app_private.${r.proname} executable by clients`);
+    }
+    for (const name of billingHelpers) assert(fn(name).prosecdef, `app_private.${name}: not security definer`);
+    for (const name of [...writingBillingFunctions, "expire_stale"]) assert(fn(name).provolatile === "v", `${name} writes but is not volatile`);
+    // module_access (stable) calls them: they must never write.
+    for (const name of ["has_entitlement", "current_plan_code", "sandbox_enabled"]) assert(fn(name).provolatile === "s", `${name} must be stable`);
+    // Races: concurrent resolutions and double-click checkouts serialize on row locks. The
+    // harness runs in one uncommitted transaction, so the locks are checked statically.
+    assert(/for update of p, s/i.test(fn("sandbox_resolve_payment").prosrc), "sandbox_resolve_payment does not lock the payment and subscription");
+    // Single lock order (no cross waits): the workspace first, before expire_stale and before
+    // any other row lock, in every function that expires lazily or locks a payment/subscription.
+    const workspaceLock = /from public\.workspaces w where w\.id = v_ws for update/i;
+    const lockers = rows.filter((r) => r.nspname === "public" && (/expire_stale/.test(r.prosrc) || /for update/i.test(r.prosrc))).map((r) => r.proname).sort();
+    assert(JSON.stringify(lockers) === JSON.stringify(["cancel_subscription", "get_payment", "list_my_payments", "my_plan", "resume_subscription", "sandbox_resolve_payment", "start_checkout"]), `lazy-expiring or locking functions: ${lockers}`);
+    for (const name of lockers) {
+      const src = fn(name).prosrc;
+      const lock = src.search(workspaceLock);
+      assert(lock >= 0, `${name} does not lock the workspace`);
+      const before = src.slice(0, lock);
+      assert(!/for update|expire_stale\(/i.test(before), `${name} takes another lock or expires before locking the workspace`);
+    }
+    for (const name of ["start_checkout", "sandbox_resolve_payment"]) assert(/app_private\.sandbox_enabled\(\)/.test(fn(name).prosrc), `${name} ignores sandbox_enabled`);
+    // Read-only admin model: no admin function writes subscriptions or payments.
+    const writers = await q(`SELECT proname FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proname LIKE 'admin\\_%'
+      AND prosrc ~* '(insert\\s+into|update|delete\\s+from)\\s+public\\.(subscriptions|payments|plans|plan_prices|plan_entitlements)'`);
+    assert(writers.rowCount === 0, `admin functions write billing data: ${writers.rows.map((r) => r.proname)}`);
+    // Fail-closed: the migration defines the sandbox as off; the dev seed (applied here) turns it on.
+    const def = migration5.match(/create function app_private\.sandbox_enabled\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i);
+    assert(def && /^\s*select false\s*$/i.test(def[1]), "the migration must define sandbox_enabled() as false");
+    assert((await q("SELECT app_private.sandbox_enabled() AS v")).rows[0].v === true, "the dev seed must enable the sandbox");
+  });
+
+  await test("billing RPCs: anon has no EXECUTE; suspended and pending-deletion users get 42501", async () => {
+    await asAnon();
+    for (const [name, [sql]] of Object.entries(userBillingCalls)) {
+      await q("SAVEPOINT e");
+      try {
+        await q(sql);
+        throw new Error(`${name}: anon call succeeded`);
+      } catch (error) {
+        await q("ROLLBACK TO SAVEPOINT e");
+        assert(error.code === "42501" && error.routine === "aclcheck_error", `${name}: anon got ${error.code} from ${error.routine}`);
+      }
+    }
+    await q("RESET ROLE");
+    await setCountry(ids.suspended, "PE");
+    await setCountry(ids.b, "PE");
+    await q("UPDATE users SET status = 'deletion_pending', deletion_requested_at = now() WHERE id = $1", [ids.b]);
+    for (const user of [ids.suspended, ids.b]) {
+      await as(user);
+      for (const [name, [sql]] of Object.entries(userBillingCalls)) {
+        await q("SAVEPOINT e");
+        try {
+          await q(sql);
+          throw new Error(`${name}: call succeeded`);
+        } catch (error) {
+          await q("ROLLBACK TO SAVEPOINT e");
+          await q("SET CONSTRAINTS ALL DEFERRED");
+          assert(error.code === "42501" && error.routine === "exec_stmt_raise", `${name}: got ${error.code} from ${error.routine}: ${error.message}`);
+        }
+      }
+    }
+  });
+
+  await test("plans: Gratis without price, Individual at PEN 1990/month from the profile country, Institucional hidden and not sold", async () => {
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    const rows = (await q("SELECT * FROM public.list_plans()")).rows;
+    const expected = [
+      { plan_code: "gratis", scope: "personal", price_id: null, amount_minor: null, currency: null, period: null, entitlement_codes: [], sort_order: 10 },
+      { plan_code: "individual", scope: "personal", price_id: rows[1]?.price_id, amount_minor: 1990, currency: "PEN", period: "month", entitlement_codes: ["demo.access"], sort_order: 20 },
+    ];
+    assert(rows[1]?.price_id && JSON.stringify(rows) === JSON.stringify(expected), `list_plans ${JSON.stringify(rows)}`);
+    assert((await q("SELECT public.sandbox_available() AS v")).rows[0].v === true, "sandbox_available must be true with the dev seed");
+    for (const plan of ["institucional", "gratis", "premium", null]) {
+      await expectError("SELECT public.start_checkout($1)", [plan], "22023");
+    }
+    // Profile without country: no price and no checkout.
+    await as(ids.director);
+    const noCountry = (await q("SELECT plan_code, price_id FROM public.list_plans()")).rows;
+    assert(JSON.stringify(noCountry) === '[{"plan_code":"gratis","price_id":null},{"plan_code":"individual","price_id":null}]', `no-country plans ${JSON.stringify(noCountry)}`);
+    await expectError("SELECT public.start_checkout('individual')", [], "22023");
+    // Even active, visible and priced, an institutional plan is never sold in the personal context.
+    await q("RESET ROLE");
+    await q("UPDATE plans SET active = true, visible = true WHERE code = 'institucional'");
+    await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('institucional', 'PE', 'PEN', 5000, 'month')");
+    await as(ids.a);
+    await expectError("SELECT public.start_checkout('institucional')", [], "22023");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions") === 0 && await count("SELECT 1 FROM payments") === 0, "rejected checkouts left rows");
+  });
+
+  await test("plans: a price is immutable except active; Gratis has no price or subscription; one active price per plan and country", async () => {
+    await expectError("UPDATE plan_prices SET amount_minor = 990", [], "23514");
+    await expectError("UPDATE plan_prices SET currency = 'USD'", [], "23514");
+    await expectError("UPDATE plan_prices SET plan_code = 'institucional'", [], "23514");
+    await expectError("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('gratis', 'PE', 'PEN', 1, 'month')", [], "23514");
+    await expectError("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('individual', 'PE', 'PEN', 0, 'month')", [], "23514");
+    await expectError("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('individual', 'PE', 'PEN', 2990, 'month')", [], "23505");
+    await q("UPDATE plan_prices SET active = false WHERE plan_code = 'individual'");
+    await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('individual', 'PE', 'PEN', 2990, 'month')");
+    const price = (await q("SELECT id FROM plan_prices WHERE plan_code = 'individual' AND active")).rows[0].id;
+    await expectError("INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, price_amount_minor, price_currency, price_period) VALUES ($1, 'gratis', $2, 1990, 'PEN', 'month')", [await personalWs(ids.a), price], "23514");
+  });
+
+  await test("checkout: without the seed's sandbox (production) checkout and resolution are rejected with 42501", async () => {
+    const payment = await startCheckout(ids.a);
+    await setSandbox(false);
+    await as(ids.a);
+    assert((await q("SELECT public.sandbox_available() AS v")).rows[0].v === false, "sandbox_available must be false");
+    await expectError("SELECT public.start_checkout('individual')");
+    for (const result of ["approved", "rejected", "canceled", "pending"]) {
+      await expectError("SELECT public.sandbox_resolve_payment($1, $2)", [payment, result]);
+    }
+    assert((await q("SELECT * FROM public.list_plans()")).rowCount === 2, "plans must still be listed without the sandbox");
+    assert(await demoOf() === "requires_entitlement", "demo unlocked without the sandbox");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM payments WHERE id = $1 AND status = 'pending'", [payment]) === 1, "payment changed without the sandbox");
+    assert(await count("SELECT 1 FROM subscriptions WHERE status = 'active'") === 0, "subscription activated without the sandbox");
+  });
+
+  await test("checkout: double click returns the same payment; the server fixes price, snapshot and expiry; audited once", async () => {
+    const p1 = await startCheckout(ids.a);
+    const p2 = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    assert(p1 === p2, "double click created a second payment");
+    await expectError("SELECT public.start_checkout('individual', 1)", [], "42883"); // no amount parameter exists
+    await q("RESET ROLE");
+    const subs = (await q("SELECT * FROM subscriptions WHERE workspace_id = $1", [await personalWs(ids.a)])).rows;
+    assert(subs.length === 1, "one subscription expected");
+    const [s] = subs;
+    assert(s.status === "incomplete" && s.plan_code === "individual" && s.price_amount_minor === 1990 && s.price_currency === "PEN" && s.price_period === "month" && JSON.stringify(s.entitlement_codes) === '["demo.access"]', `snapshot ${JSON.stringify(s)}`);
+    assert(s.current_period_start === null && s.current_period_end === null && s.activated_at === null && !s.cancel_at_period_end, "incomplete subscription with a period");
+    const pays = (await q("SELECT *, expires_at = now() + interval '30 minutes' AS expiry_ok FROM payments WHERE subscription_id = $1", [s.id])).rows;
+    assert(pays.length === 1 && pays[0].id === p1 && pays[0].status === "pending" && pays[0].amount_minor === 1990 && pays[0].currency === "PEN" && pays[0].provider === "sandbox" && pays[0].expiry_ok && pays[0].provider_reference === null && pays[0].resolved_at === null, `payment ${JSON.stringify(pays)}`);
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'checkout.started' AND actor_user_id = $1 AND resource_id = $2 AND details = $3::jsonb", [ids.a, s.id, JSON.stringify({ plan: "individual", payment_id: p1 })]) === 1, "checkout not audited exactly once");
+    // A later price change does not rewrite the snapshot, which is immutable.
+    await q("UPDATE plan_prices SET active = false WHERE plan_code = 'individual'");
+    await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('individual', 'PE', 'PEN', 2990, 'month')");
+    await expectError("UPDATE subscriptions SET price_amount_minor = 1 WHERE id = $1", [s.id], "23514");
+    await expectError("UPDATE subscriptions SET entitlement_codes = '{}' WHERE id = $1", [s.id], "23514");
+    await expectError("UPDATE payments SET amount_minor = 1 WHERE id = $1", [p1], "23514");
+    await as(ids.a);
+    assert(await resolvePayment(p1, "approved") === "approved", "approval failed");
+    const [plan] = await myPlan();
+    assert(plan.amount_minor === 1990 && plan.currency === "PEN", `snapshot price not kept ${JSON.stringify(plan)}`);
+  });
+
+  await test("checkout: a current subscription blocks a new checkout (23514)", async () => {
+    await buyIndividual(ids.a);
+    await expectError("SELECT public.start_checkout('individual')", [], "23514");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1", [await personalWs(ids.a)]) === 1, "a second subscription was created");
+  });
+
+  await test("payment approved: one-month current subscription; demo goes from requires_entitlement to available; notified and audited", async () => {
+    const payment = await startCheckout(ids.a);
+    assert(await demoOf() === "requires_entitlement", "demo available before paying");
+    let [p] = await myPlan();
+    assert(p.plan_code === "gratis" && p.subscription_id === null && p.status === null && p.pending_payment_id === payment && p.cancel_at_period_end === false, `pending plan ${JSON.stringify(p)}`);
+    assert(await resolvePayment(payment, "approved") === "approved", "approval failed");
+    assert(await demoOf() === "available", "demo not available with Individual");
+    const access = accessOf(await myModules());
+    for (const id of future) assert(access[id] === "coming_soon", `${id} changed with Individual: ${access[id]}`);
+    [p] = await myPlan();
+    assert(p.plan_code === "individual" && p.status === "active" && p.pending_payment_id === null && p.amount_minor === 1990 && p.currency === "PEN" && !p.cancel_at_period_end, `active plan ${JSON.stringify(p)}`);
+    const pay = (await q("SELECT * FROM public.get_payment($1)", [payment])).rows;
+    assert(pay.length === 1 && pay[0].status === "approved" && pay[0].plan_code === "individual" && pay[0].amount_minor === 1990 && pay[0].resolved_at !== null, `get_payment ${JSON.stringify(pay)}`);
+    await expectError("SELECT * FROM public.get_payment($1)", ["00000000-0000-0000-0000-000000000000"], "P0002");
+    await q("RESET ROLE");
+    const s = (await q("SELECT current_period_start = now() AND current_period_end = now() + interval '1 month' AND activated_at = now() AS period_ok FROM subscriptions WHERE id = $1", [p.subscription_id])).rows[0];
+    assert(s.period_ok, "period must be now() → now() + 1 month");
+    assert(await count("SELECT 1 FROM payments WHERE id = $1 AND provider_reference = 'sandbox-' || id::text AND resolved_at = now()", [payment]) === 1, "payment reference wrong");
+    const notes = (await q("SELECT title, link_path FROM notifications WHERE user_id = $1 AND kind = 'subscription_activated'", [ids.a])).rows;
+    assert(notes.length === 1 && notes[0].link_path === "/mi-plan" && /prueba/i.test(notes[0].title), `activation notification ${JSON.stringify(notes)}`);
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'subscription.activated' AND resource_id = $1 AND actor_user_id = $2", [p.subscription_id, ids.a]) === 1, "activation not audited");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id = $1 AND details = $2::jsonb", [payment, JSON.stringify({ result: "approved", payment_id: payment })]) === 1, "resolution not audited");
+  });
+
+  await test("payment repetition: the same result again has no duplicate effects (one notification, one audit)", async () => {
+    const payment = await startCheckout(ids.a);
+    for (let i = 0; i < 3; i++) assert(await resolvePayment(payment, "approved") === "approved", "repeat changed the status");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM notifications WHERE user_id = $1 AND kind = 'subscription_activated'", [ids.a]) === 1, "notification duplicated");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id = $1", [payment]) === 1, "resolution audited twice");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'subscription.activated'") === 1, "activation audited twice");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1", [await personalWs(ids.a)]) === 1, "extra subscription");
+    const pb = await startCheckout(ids.b);
+    assert(await resolvePayment(pb, "rejected") === "rejected" && await resolvePayment(pb, "rejected") === "rejected", "rejection repeat changed the status");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM notifications WHERE user_id = $1 AND kind = 'payment_rejected'", [ids.b]) === 1, "rejection notification duplicated");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id = $1", [pb]) === 1, "rejection audited twice");
+  });
+
+  await test("payment out of order: a late rejection or cancellation never reverts an approval; a late approval never revives a rejection", async () => {
+    const payment = await startCheckout(ids.a);
+    await resolvePayment(payment, "approved");
+    for (const late of ["rejected", "canceled", "pending"]) assert(await resolvePayment(payment, late) === "approved", `late ${late} changed the payment`);
+    assert(await demoOf() === "available", "a late result removed access");
+    const pb = await startCheckout(ids.b);
+    await resolvePayment(pb, "rejected");
+    assert(await resolvePayment(pb, "approved") === "rejected", "late approval accepted");
+    assert(await demoOf() === "requires_entitlement", "late approval granted access");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM payments WHERE id = $1 AND status = 'approved'", [payment]) === 1, "approval reverted");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1 AND status = 'active'", [await personalWs(ids.a)]) === 1, "subscription reverted");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1 AND status = 'active'", [await personalWs(ids.b)]) === 0, "rejected subscription revived");
+    assert(await count("SELECT 1 FROM notifications WHERE kind = 'payment_rejected' AND user_id = $1", [ids.a]) === 0, "late rejection notified");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id IN ($1, $2)", [payment, pb]) === 2, "late results audited");
+    // Backstop in the tables: a resolved payment and a closed transition cannot change.
+    await expectError("UPDATE payments SET status = 'rejected' WHERE id = $1", [payment], "23514");
+    await expectError("UPDATE subscriptions SET status = 'incomplete_expired' WHERE workspace_id = $1", [await personalWs(ids.a)], "23514");
+    await expectError("UPDATE subscriptions SET status = 'active' WHERE workspace_id = $1", [await personalWs(ids.b)], "23514");
+  });
+
+  await test("payment rejected or canceled: stays on Gratis, checkout closed, only rejection notifies; a new checkout works", async () => {
+    for (const result of ["rejected", "canceled"]) {
+      await q("SAVEPOINT r");
+      const payment = await startCheckout(ids.a);
+      assert(await resolvePayment(payment, result) === result, `${result} not applied`);
+      assert(await demoOf() === "requires_entitlement", `${result}: demo unlocked`);
+      const [p] = await myPlan();
+      assert(p.plan_code === "gratis" && p.subscription_id === null && p.pending_payment_id === null, `${result}: plan ${JSON.stringify(p)}`);
+      const again = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+      assert(again !== payment, `${result}: a new checkout reused the closed payment`);
+      await q("RESET ROLE");
+      assert(await count("SELECT 1 FROM subscriptions s JOIN payments p ON p.subscription_id = s.id WHERE p.id = $1 AND s.status = 'incomplete_expired'", [payment]) === 1, `${result}: subscription not closed`);
+      assert(await count("SELECT 1 FROM payments WHERE id = $1 AND provider_reference = 'sandbox-' || id::text AND resolved_at IS NOT NULL", [payment]) === 1, `${result}: reference missing`);
+      const notes = (await q("SELECT link_path FROM notifications WHERE user_id = $1 AND kind = 'payment_rejected'", [ids.a])).rows;
+      assert(notes.length === (result === "rejected" ? 1 : 0) && notes.every((n) => n.link_path === "/planes"), `${result}: notifications ${JSON.stringify(notes)}`);
+      assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id = $1 AND details ->> 'result' = $2", [payment, result]) === 1, `${result}: not audited`);
+      await q("ROLLBACK TO SAVEPOINT r");
+      await q("SET CONSTRAINTS ALL DEFERRED");
+    }
+  });
+
+  await test("payment pending: no changes and no audit; it can still be approved later", async () => {
+    const payment = await startCheckout(ids.a);
+    assert(await resolvePayment(payment, "pending") === "pending", "pending changed the status");
+    const [p] = await myPlan();
+    assert(p.plan_code === "gratis" && p.pending_payment_id === payment, "pending payment not reported");
+    assert(await demoOf() === "requires_entitlement", "pending unlocked the demo");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM payments WHERE id = $1 AND status = 'pending' AND resolved_at IS NULL AND provider_reference IS NULL", [payment]) === 1, "pending payment touched");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved'") === 0, "pending audited");
+    await as(ids.a);
+    await expectError("SELECT public.sandbox_resolve_payment($1, 'refunded')", [payment], "22023");
+    await expectError("SELECT public.sandbox_resolve_payment($1, null)", [payment], "22023");
+    assert(await resolvePayment(payment, "approved") === "approved", "approval after pending failed");
+  });
+
+  await test("payment expiry: a pending payment past expires_at expires lazily and can no longer be approved", async () => {
+    const payment = await startCheckout(ids.a);
+    await q("RESET ROLE");
+    await q("UPDATE payments SET expires_at = now() - interval '1 minute' WHERE id = $1", [payment]);
+    await as(ids.a);
+    const [p] = await myPlan(); // lazy expiry on read
+    assert(p.pending_payment_id === null && p.plan_code === "gratis", `expired payment still pending ${JSON.stringify(p)}`);
+    assert(await resolvePayment(payment, "approved") === "expired", "expired payment approved");
+    assert(await demoOf() === "requires_entitlement", "expired payment unlocked the demo");
+    const pay = (await q("SELECT status, resolved_at FROM public.get_payment($1)", [payment])).rows[0];
+    assert(pay.status === "expired" && pay.resolved_at !== null, "get_payment must show expired");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM payments WHERE id = $1 AND provider_reference = 'sandbox-' || id::text", [payment]) === 1, "expired payment without reference");
+    assert(await count("SELECT 1 FROM subscriptions s JOIN payments p ON p.subscription_id = s.id WHERE p.id = $1 AND s.status = 'incomplete_expired'", [payment]) === 1, "subscription not incomplete_expired");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved'") === 0, "expiry audited as a resolution");
+    // Without a prior read, the resolution itself applies the expiry.
+    await as(ids.a);
+    const second = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    assert(second !== payment, "expired payment reused");
+    await q("RESET ROLE");
+    await q("UPDATE payments SET expires_at = now() - interval '1 minute' WHERE id = $1", [second]);
+    await as(ids.a);
+    assert(await resolvePayment(second, "approved") === "expired", "stale payment approved without a prior read");
+    // A double click never returns a stale payment: the checkout expires it and starts over.
+    const third = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    await q("RESET ROLE");
+    await q("UPDATE payments SET expires_at = now() - interval '1 minute' WHERE id = $1", [third]);
+    await as(ids.a);
+    const fourth = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    assert(fourth !== third, "stale pending payment returned by a double click");
+    assert(await resolvePayment(fourth, "approved") === "approved" && await demoOf() === "available", "fresh checkout after expiry failed");
+  });
+
+  await test("validity: with current_period_end in the past the demo is blocked and my_plan says gratis; a new checkout works", async () => {
+    await buyIndividual(ids.a);
+    await endPeriod(ids.a);
+    await as(ids.a);
+    // Dates decide before any lazy write: the row is still 'active' here.
+    assert(await demoOf() === "requires_entitlement", "an ended period still grants the demo");
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1 AND status = 'active'", [await personalWs(ids.a)]) === 1, "row should still be active before the lazy expiry");
+    await as(ids.a);
+    const [p] = await myPlan();
+    assert(p.plan_code === "gratis" && p.subscription_id === null && p.status === null && p.cancel_at_period_end === false, `ended plan ${JSON.stringify(p)}`);
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1 AND status = 'expired'", [await personalWs(ids.a)]) === 1, "not marked expired");
+    await as(ids.a);
+    const again = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    assert(await resolvePayment(again, "approved") === "approved" && await demoOf() === "available", "a new checkout after expiry failed");
+  });
+
+  await test("cancel and resume: access kept until the period end; resume restores it; errors P0002/23514", async () => {
+    await setCountry(ids.a, "PE");
+    await as(ids.a);
+    await expectError("SELECT public.cancel_subscription()", [], "P0002");
+    await expectError("SELECT public.resume_subscription()", [], "23514");
+    await buyIndividual(ids.a);
+    await expectError("SELECT public.resume_subscription()", [], "23514");
+    await q("SELECT public.cancel_subscription()");
+    let [p] = await myPlan();
+    assert(p.plan_code === "individual" && p.cancel_at_period_end === true, "cancel not recorded");
+    assert(await demoOf() === "available", "cancel removed access before the period end");
+    await expectError("SELECT public.cancel_subscription()", [], "23514");
+    await q("SELECT public.resume_subscription()");
+    [p] = await myPlan();
+    assert(p.plan_code === "individual" && p.cancel_at_period_end === false, "resume failed");
+    await expectError("SELECT public.resume_subscription()", [], "23514");
+    const sub = p.subscription_id;
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions WHERE id = $1 AND canceled_at IS NULL AND NOT cancel_at_period_end", [sub]) === 1, "canceled_at not cleared");
+    assert(await auditCount("subscription.canceled", sub) === 1 && await auditCount("subscription.resumed", sub) === 1, "cancel/resume not audited once");
+    await as(ids.a);
+    await q("SELECT public.cancel_subscription()");
+    await endPeriod(ids.a, "now()"); // the end itself is no longer current
+    await as(ids.a);
+    assert(await demoOf() === "requires_entitlement", "a canceled subscription kept access after the period end");
+    await expectError("SELECT public.resume_subscription()", [], "23514");
+    await expectError("SELECT public.cancel_subscription()", [], "P0002");
+    [p] = await myPlan();
+    assert(p.plan_code === "gratis", "a canceled and ended plan is still Individual");
+  });
+
+  await test("isolation: B never reads or resolves A's payments or subscriptions, by function or table", async () => {
+    const pending = await startCheckout(ids.a);
+    await q("RESET ROLE");
+    await setCountry(ids.b, "PE");
+    await as(ids.b);
+    await expectError("SELECT * FROM public.get_payment($1)", [pending], "P0002");
+    for (const result of ["approved", "rejected", "canceled", "pending"]) {
+      await expectError("SELECT public.sandbox_resolve_payment($1, $2)", [pending, result], "P0002");
+    }
+    await expectError("SELECT 1 FROM payments");
+    await expectError("SELECT 1 FROM subscriptions");
+    assert((await q("SELECT * FROM public.list_my_payments()")).rowCount === 0, "B lists A's payments");
+    let [p] = await myPlan();
+    assert(p.plan_code === "gratis" && p.pending_payment_id === null, "B sees A's pending payment");
+    await as(ids.a);
+    assert(await resolvePayment(pending, "approved") === "approved", "A cannot approve the own payment");
+    await as(ids.b);
+    [p] = await myPlan();
+    assert(p.plan_code === "gratis" && p.subscription_id === null, "B inherits A's plan");
+    assert(await demoOf() === "requires_entitlement", "B unlocked by A's plan");
+    await expectError("SELECT * FROM public.get_payment($1)", [pending], "P0002");
+    await expectError("SELECT public.cancel_subscription()", [], "P0002");
+    await as(ids.a);
+    const mine = (await q("SELECT * FROM public.list_my_payments()")).rows;
+    assert(mine.length === 1 && mine[0].id === pending && mine[0].status === "approved" && mine[0].plan_code === "individual" && mine[0].provider === "sandbox" && mine[0].amount_minor === 1990 && mine[0].total_count === "1", `A payments ${JSON.stringify(mine)}`);
+    await q("RESET ROLE");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1", [await personalWs(ids.b)]) === 0, "B got a subscription");
+  });
+
+  await test("isolation: an institutional subscription grants nothing in its members' personal context; no other module unlocks", async () => {
+    const orgWs = (await q("SELECT id FROM workspaces WHERE organization_id = $1", [orgA])).rows[0].id;
+    const instPrice = (await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('institucional', 'PE', 'PEN', 5000, 'month') RETURNING id")).rows[0].id;
+    const indPrice = (await q("SELECT id FROM plan_prices WHERE plan_code = 'individual' AND active")).rows[0].id;
+    // Worst case: an active institutional subscription that carries demo.access.
+    await q(`INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, status, current_period_start, current_period_end, activated_at, price_amount_minor, price_currency, price_period, entitlement_codes)
+      VALUES ($1, 'institucional', $2, 'active', now() - interval '1 day', now() + interval '1 month', now() - interval '1 day', 5000, 'PEN', 'month', '{demo.access}')`, [orgWs, instPrice]);
+    // The plan scope must match the workspace kind, and the price the plan.
+    const insert = "INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, price_amount_minor, price_currency, price_period) VALUES ($1, $2, $3, 1990, 'PEN', 'month')";
+    await expectError(insert, [orgWs, "individual", indPrice], "23514");
+    await expectError(insert, [await personalWs(ids.a), "institucional", instPrice], "23514");
+    await expectError(insert, [await personalWs(ids.a), "individual", instPrice], "23514");
+    await q("INSERT INTO announcements (title, body, status, plan_codes) VALUES ('Solo institucional', 'x', 'published', '{institucional}')");
+    for (const user of [ids.a, ids.director]) {
+      await setCountry(user, "PE");
+      await as(user);
+      assert(await count("SELECT 1 FROM organizations WHERE id = $1", [orgA]) === 1, "member must see the org");
+      assert(await demoOf() === "requires_entitlement", "institutional entitlement leaked into the personal context");
+      const [p] = await myPlan();
+      assert(p.plan_code === "gratis" && p.subscription_id === null, "institutional plan reported as personal");
+      assert(await count("SELECT 1 FROM announcements WHERE title = 'Solo institucional'") === 0, "institutional plan matched the audience");
+      await q("RESET ROLE");
+    }
+    // A personal Individual unlocks only modules that require demo.access.
+    await q("INSERT INTO entitlements (code, value_type) VALUES ('otro.access', 'boolean')");
+    await q("INSERT INTO modules (id, status, implementation_available, sort_order) VALUES ('prueba-derecho', 'active', true, 60)");
+    await q("INSERT INTO module_availability (module_id, country_code, required_entitlement) VALUES ('prueba-derecho', 'PE', 'otro.access')");
+    await buyIndividual(ids.a);
+    const access = accessOf(await myModules());
+    assert(access.demo === "available" && access["prueba-derecho"] === "requires_entitlement", `another entitlement unlocked: ${JSON.stringify(access)}`);
+    for (const id of future) assert(access[id] === "coming_soon", `${id} changed`);
+    const [p] = await myPlan();
+    assert(p.plan_code === "individual", "personal plan not reported");
+  });
+
+  await test("announcements: plan_codes {individual} is seen only with a current Individual", async () => {
+    await q("INSERT INTO announcements (title, body, status, plan_codes) VALUES ('Solo Individual', 'x', 'published', '{individual}'), ('Solo Gratis', 'x', 'published', '{gratis}')");
+    const sees = async (user) => {
+      await as(user);
+      const titles = (await q("SELECT title FROM announcements WHERE title LIKE 'Solo %' ORDER BY title")).rows.map((r) => r.title).join("|");
+      await q("RESET ROLE");
+      return titles;
+    };
+    await setCountry(ids.b, "PE");
+    assert(await sees(ids.a) === "Solo Gratis", "Gratis audience wrong before buying");
+    await buyIndividual(ids.a);
+    assert(await sees(ids.a) === "Solo Individual", "Individual audience wrong");
+    assert(await sees(ids.b) === "Solo Gratis", "Gratis user sees the Individual announcement");
+    await endPeriod(ids.a);
+    assert(await sees(ids.a) === "Solo Gratis", "an ended Individual is still in the Individual audience");
+  });
+
+  await test("my payments: pages of 20, newest first, with total_count", async () => {
+    const created = [await startCheckout(ids.a)];
+    await resolvePayment(created[0], "canceled");
+    for (let i = 0; i < 20; i++) {
+      const id = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+      await resolvePayment(id, "canceled");
+      created.push(id);
+    }
+    const page = async (n) => (await q("SELECT id, total_count FROM public.list_my_payments($1)", [n])).rows;
+    const [p1, p2, p3] = [await page(1), await page(2), await page(3)];
+    assert(p1.length === 20 && p2.length === 1 && p3.length === 0, `pages ${p1.length}/${p2.length}/${p3.length}`);
+    assert([...p1, ...p2].every((r) => r.total_count === "21"), "total_count wrong");
+    const all = [...p1, ...p2].map((r) => r.id);
+    assert(JSON.stringify([...all].sort()) === JSON.stringify([...created].sort()), "pages overlap or miss payments");
+    assert(JSON.stringify(all) === JSON.stringify([...all].sort()), "same created_at must order by id");
+    await expectError("SELECT * FROM public.list_my_payments(0)", [], "22023");
+    await expectError("SELECT * FROM public.list_my_payments(null)", [], "22023");
+  });
+
+  await test("admin billing: read-only lists with filters, is_current, emails and pagination", async () => {
+    await setCountry(ids.b, "PE");
+    const pa = await buyIndividual(ids.a);
+    const pb = await startCheckout(ids.b);
+    await resolvePayment(pb, "rejected");
+    await asAdmin();
+    let rows = (await q("SELECT * FROM public.admin_list_subscriptions()")).rows;
+    assert(rows.length === 2 && rows.every((r) => r.total_count === "2"), `subscriptions ${JSON.stringify(rows)}`);
+    const subA = rows.find((r) => r.user_id === ids.a);
+    assert(subA?.email === "a@example.test" && subA.plan_code === "individual" && subA.status === "active" && subA.is_current === true && subA.amount_minor === 1990 && subA.currency === "PEN" && subA.activated_at !== null && subA.cancel_at_period_end === false, `A row ${JSON.stringify(subA)}`);
+    assert(rows.find((r) => r.user_id === ids.b)?.status === "incomplete_expired", "B row wrong");
+    rows = (await q("SELECT user_id FROM public.admin_list_subscriptions('active', 'individual')")).rows;
+    assert(rows.length === 1 && rows[0].user_id === ids.a, "status/plan filter wrong");
+    assert((await q("SELECT 1 FROM public.admin_list_subscriptions(null, 'gratis')")).rowCount === 0, "Gratis has subscriptions");
+    assert((await q("SELECT 1 FROM public.admin_list_subscriptions(null, null, 2)")).rowCount === 0, "page 2 not empty");
+    await expectError("SELECT * FROM public.admin_list_subscriptions('bogus')", [], "22023");
+    await expectError("SELECT * FROM public.admin_list_subscriptions(null, 'premium')", [], "22023");
+    await expectError("SELECT * FROM public.admin_list_subscriptions(null, null, 0)", [], "22023");
+    rows = (await q("SELECT * FROM public.admin_list_payments()")).rows;
+    const payA = rows.find((r) => r.id === pa);
+    assert(rows.length === 2 && payA?.user_id === ids.a && payA.email === "a@example.test" && payA.status === "approved" && payA.provider === "sandbox" && payA.provider_reference === `sandbox-${pa}` && payA.amount_minor === 1990 && payA.currency === "PEN" && payA.total_count === "2", `payment rows ${JSON.stringify(rows)}`);
+    rows = (await q("SELECT id FROM public.admin_list_payments('rejected')")).rows;
+    assert(rows.length === 1 && rows[0].id === pb, "payment status filter wrong");
+    await expectError("SELECT * FROM public.admin_list_payments('bogus')", [], "22023");
+    await expectError("SELECT * FROM public.admin_list_payments(null, 0)", [], "22023");
+    // is_current compares dates even while the stored status is still 'active'.
+    await endPeriod(ids.a);
+    await asAdmin();
+    rows = (await q("SELECT status, is_current FROM public.admin_list_subscriptions('active')")).rows;
+    assert(JSON.stringify(rows) === '[{"status":"active","is_current":false}]', `is_current ${JSON.stringify(rows)}`);
+    // An institutional subscription has no personal owner: no user or email.
+    await q("RESET ROLE");
+    const orgWs = (await q("SELECT id FROM workspaces WHERE organization_id = $1", [orgA])).rows[0].id;
+    const instPrice = (await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('institucional', 'PE', 'PEN', 5000, 'month') RETURNING id")).rows[0].id;
+    await q("INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, price_amount_minor, price_currency, price_period) VALUES ($1, 'institucional', $2, 5000, 'PEN', 'month')", [orgWs, instPrice]);
+    await asAdmin();
+    rows = (await q("SELECT user_id, email FROM public.admin_list_subscriptions(null, 'institucional')")).rows;
+    assert(JSON.stringify(rows) === '[{"user_id":null,"email":null}]', `institutional row ${JSON.stringify(rows)}`);
+    await q("RESET ROLE");
+    const audits = (await q("SELECT action, details FROM audit_logs WHERE action LIKE 'billing.%' AND actor_user_id = $1", [ids.admin])).rows;
+    // 8 successful list calls above; the rejected ones (22023) roll their audit back.
+    assert(audits.length === 8 && audits.every((r) => !JSON.stringify(r.details).includes("@")), `billing list audits ${audits.length}`);
+  });
+
+  await test("admin conversion: exact first Individual activations on a known dataset; seed users never count", async () => {
+    await q("UPDATE users SET is_seed = true"); // harness fixtures become seed
+    const price = (await q("SELECT id FROM plan_prices WHERE plan_code = 'individual' AND active")).rows[0].id;
+    const sub = (user, status, ago) => q(`INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, status, current_period_start, current_period_end, activated_at, price_amount_minor, price_currency, price_period, entitlement_codes)
+      SELECT w.id, 'individual', $2, $3, now() - $4::interval, now() - $4::interval + interval '1 month', now() - $4::interval, 1990, 'PEN', 'month', '{demo.access}'
+      FROM workspaces w WHERE w.owner_user_id = $1`, [user, price, status, ago]);
+    const c1 = await newAuthUser("c1@example.test");
+    const c2 = await newAuthUser("c2@example.test");
+    const c3 = await newAuthUser("c3@example.test");
+    const s1 = await newAuthUser("s1@example.test");
+    await sub(c1, "active", "5 days"); // counts in both
+    await sub(c2, "expired", "40 days"); // first activation 40 days ago...
+    await sub(c2, "active", "2 days"); // ...a later one does not make the conversion recent
+    await q("INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, status, price_amount_minor, price_currency, price_period) SELECT id, 'individual', $2, 'incomplete_expired', 1990, 'PEN', 'month' FROM workspaces WHERE owner_user_id = $1", [c3, price]); // never activated
+    await q("UPDATE users SET is_seed = true WHERE id = $1", [s1]);
+    await sub(s1, "active", "1 day"); // seed: excluded
+    const orgWs = (await q("SELECT id FROM workspaces WHERE organization_id = $1", [orgA])).rows[0].id;
+    const instPrice = (await q("INSERT INTO plan_prices (plan_code, country_code, currency, amount_minor, period) VALUES ('institucional', 'PE', 'PEN', 5000, 'month') RETURNING id")).rows[0].id;
+    await q(`INSERT INTO subscriptions (workspace_id, plan_code, plan_price_id, status, current_period_start, current_period_end, activated_at, price_amount_minor, price_currency, price_period)
+      VALUES ($1, 'institucional', $2, 'active', now(), now() + interval '1 month', now(), 5000, 'PEN', 'month')`, [orgWs, instPrice]); // not a personal conversion
+    const c4 = await newAuthUser("c4@example.test");
+    await buyIndividual(c4); // the real sandbox path, now
+    const ownerA = await buyIndividual(ids.a); // seed fixture: excluded
+    assert(ownerA, "fixture purchase failed");
+    await asAdmin();
+    const rows = (await q("SELECT converted_users::int, converted_last_30_days::int FROM public.admin_metric_conversion()")).rows;
+    assert(JSON.stringify(rows) === JSON.stringify([{ converted_users: 3, converted_last_30_days: 2 }]), `conversion ${JSON.stringify(rows)}`);
+  });
+
+  await test("deletion: erases the user's subscriptions and payments with the account; the audit trail stays", async () => {
+    const ws = await personalWs(ids.b);
+    const rejected = await startCheckout(ids.b);
+    await resolvePayment(rejected, "rejected");
+    const approved = (await q("SELECT public.start_checkout('individual') AS id")).rows[0].id;
+    await resolvePayment(approved, "approved");
+    await q("SELECT public.request_account_deletion()");
+    await q("SELECT public.perform_account_deletion()");
+    await q("RESET ROLE");
+    await checkDeferred();
+    assert(await count("SELECT 1 FROM payments WHERE id IN ($1, $2)", [rejected, approved]) === 0, "payments not erased");
+    assert(await count("SELECT 1 FROM subscriptions WHERE workspace_id = $1", [ws]) === 0, "subscriptions not erased");
+    assert(await count("SELECT 1 FROM workspaces WHERE id = $1", [ws]) === 0, "workspace not erased");
+    assert(await count("SELECT 1 FROM audit_logs WHERE action = 'payment.resolved' AND resource_id IN ($1, $2)", [rejected, approved]) === 2, "audit trail lost");
   });
 
 } finally {

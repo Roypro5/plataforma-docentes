@@ -65,3 +65,16 @@ select 'Aviso de prueba',
   'Aviso sintético de desarrollo y staging para probar el panel. No contiene información real.',
   'published'
 where not exists (select 1 from public.announcements where title = 'Aviso de prueba');
+
+-- 5. Etapa 5 (SOLO dev y staging): habilita la pasarela de prueba (sandbox). La migración
+--    20261006000100_stage5_billing.sql deja app_private.sandbox_enabled() en false
+--    (fail-closed); como este seed nunca se aplica en producción, allí no se puede iniciar
+--    un checkout ni resolver un pago de prueba. create or replace conserva propietario y
+--    privilegios. Idempotente.
+create or replace function app_private.sandbox_enabled()
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select true
+$$;

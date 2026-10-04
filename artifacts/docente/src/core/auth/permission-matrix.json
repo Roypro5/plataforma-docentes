@@ -3,6 +3,6 @@
   "creador": [],
   "director": ["org.read", "org.members.read"],
   "revisor": [],
-  "admin": ["admin.access", "admin.users.suspend", "admin.roles.grant", "admin.users.read", "admin.modules.manage", "admin.announcements.manage", "admin.catalogs.manage", "admin.orgs.manage", "admin.metrics.read", "admin.audit.read"],
-  "superadmin": ["admin.access", "admin.users.suspend", "admin.roles.grant", "admin.roles.grant_privileged", "admin.users.read", "admin.modules.manage", "admin.announcements.manage", "admin.catalogs.manage", "admin.orgs.manage", "admin.metrics.read", "admin.audit.read"]
+  "admin": ["admin.access", "admin.users.suspend", "admin.roles.grant", "admin.users.read", "admin.modules.manage", "admin.announcements.manage", "admin.catalogs.manage", "admin.orgs.manage", "admin.metrics.read", "admin.audit.read", "admin.billing.read"],
+  "superadmin": ["admin.access", "admin.users.suspend", "admin.roles.grant", "admin.roles.grant_privileged", "admin.users.read", "admin.modules.manage", "admin.announcements.manage", "admin.catalogs.manage", "admin.orgs.manage", "admin.metrics.read", "admin.audit.read", "admin.billing.read"]
 }

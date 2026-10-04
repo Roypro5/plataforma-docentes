@@ -4,7 +4,7 @@ Plataforma para docentes peruanos. Next.js App Router, TypeScript, Tailwind y Su
 
 ## Alcance
 
-Etapas 1 a 4 cerradas ([reporte etapa 2](docs/reports/etapa-2-verificacion.md), [reporte etapa 3](docs/reports/etapa-3-verificacion.md), [reporte etapa 4](docs/reports/etapa-4-verificacion.md)). Etapa 5 (planes sandbox, demo y pruebas finales) autorizada; [plan](docs/architecture/etapa-5-plan.md) en revisión. La etapa 2 incluye: registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. La etapa 3 añade el panel, módulos «Próximamente» con «Avísame», avisos, notificaciones y manifiesto PWA. Sin pagos. Cada etapa se cierra con demo, reporte de CI y aprobación del propietario.
+Etapas 1 a 4 cerradas ([reporte etapa 2](docs/reports/etapa-2-verificacion.md), [reporte etapa 3](docs/reports/etapa-3-verificacion.md), [reporte etapa 4](docs/reports/etapa-4-verificacion.md)). Etapa 5 (planes sandbox, demo y pruebas finales) en implementación con [plan aprobado](docs/architecture/etapa-5-plan.md). La etapa 2 incluye: registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. La etapa 3 añade el panel, módulos «Próximamente» con «Avísame», avisos, notificaciones y manifiesto PWA. Pagos solo de prueba (sandbox), sin cobros reales. Cada etapa se cierra con demo, reporte de CI y aprobación del propietario.
 
 Desarrollo y staging: servicios gratuitos. El propietario desplegó staging en Vercel Hobby: https://plataforma-docentesstaging.vercel.app/. No usar la API de Vercel ni contratar servicios pagados.
 
