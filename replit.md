@@ -4,7 +4,7 @@ Producto para docentes peruanos, preparado para otros países. Respetar el alcan
 
 ## Reglas del proyecto
 
-- Etapas 1, 2 y 3 cerradas (`docs/reports/`). **Etapa 4 autorizada el 03/10/2026** (administración mínima), con plan aprobado: `docs/architecture/etapa-4-plan.md` y contrato técnico `docs/architecture/etapa-4-contrato.md`. Mostrar demo y reporte de CI al cerrar cada etapa; esperar aprobación antes de seguir.
+- Etapas 1, 2 y 3 cerradas (`docs/reports/`). **Etapa 4 (administración mínima) implementada y verificada en staging, pendiente de aprobación del propietario** (`docs/reports/etapa-4-verificacion.md`; plan aprobado: `docs/architecture/etapa-4-plan.md`; contrato técnico `docs/architecture/etapa-4-contrato.md`). No empezar la etapa 5 sin autorización explícita. Mostrar demo y reporte de CI al cerrar cada etapa; esperar aprobación antes de seguir.
 - Stack aprobado: Next.js App Router + TypeScript + Supabase. No usar la base integrada ni cambiar a Express/Vite.
 - Desarrollo y staging: presupuesto US$0; no contratar servicios pagados.
 - No simular autenticación, pagos, guardado ni conectividad con terceros.
