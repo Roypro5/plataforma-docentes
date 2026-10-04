@@ -1,7 +1,7 @@
 # Etapa 4 — Demo y reporte de verificación
 
 **Autorización:** el propietario autorizó la etapa 4 y aprobó su [plan](../architecture/etapa-4-plan.md), con las 6 decisiones de la sección 8 tal como se recomendaron, el 03/10/2026. Detalle técnico en el [contrato](../architecture/etapa-4-contrato.md), incluida su sección «Correcciones de la auditoría».
-**Estado:** **implementada y verificada en staging, pendiente de aprobación del propietario** para cerrar la etapa 4. La etapa 5 no empieza sin autorización explícita.
+**Estado:** **etapa 4 cerrada** por aprobación del propietario el 03/10/2026, con todas las pruebas aprobadas en staging. El propietario autorizó iniciar la etapa 5 a partir de un plan que debe aprobar antes de implementarse.
 
 **Demo:** https://plataforma-docentesstaging.vercel.app (`/admin`, accesible solo para admin y superadmin con MFA, desde «Mi cuenta»).
 
@@ -128,4 +128,4 @@ Se arrastran de etapas anteriores: SMTP propio (el integrado envía unos 2 corre
 
 ## Aprobación
 
-La etapa 4 está **pendiente de aprobación explícita del propietario**. No se considera cerrada hasta recibirla.
+La etapa 4 quedó **cerrada** el 03/10/2026 con la aprobación explícita del propietario.
