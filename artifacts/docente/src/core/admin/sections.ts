@@ -9,6 +9,7 @@ export const adminSections = [
   { key: "organizaciones", href: "/admin/organizaciones", permission: "admin.orgs.manage" },
   { key: "metricas", href: "/admin/metricas", permission: "admin.metrics.read" },
   { key: "auditoria", href: "/admin/auditoria", permission: "admin.audit.read" },
+  { key: "planes-pagos", href: "/admin/planes-pagos", permission: "admin.billing.read" },
 ] as const satisfies readonly { key: string; href: string; permission: Permission }[];
 
 export type AdminSectionKey = (typeof adminSections)[number]["key"];

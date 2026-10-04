@@ -127,6 +127,13 @@ describe("action labels", () => {
       "org.members_listed",
       "org.member_added",
       "org.member_removed",
+      "checkout.started",
+      "payment.resolved",
+      "subscription.activated",
+      "subscription.canceled",
+      "subscription.resumed",
+      "billing.subscriptions_listed",
+      "billing.payments_listed",
     ]) {
       expect(codes).toContain(code);
     }

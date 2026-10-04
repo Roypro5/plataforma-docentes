@@ -15,6 +15,7 @@ export const admin = {
     organizaciones: { label: "Organizaciones de prueba", desc: "Crear organizaciones y gestionar miembros" },
     metricas: { label: "Métricas", desc: "Registros, actividad e interés" },
     auditoria: { label: "Auditoría", desc: "Quién hizo qué y cuándo" },
+    "planes-pagos": { label: "Planes y pagos", desc: "Suscripciones y pagos de prueba, solo lectura" },
   },
   pager: {
     label: "Paginación",

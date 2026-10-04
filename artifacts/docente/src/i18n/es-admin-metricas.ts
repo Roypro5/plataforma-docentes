@@ -49,6 +49,9 @@ export const adminMetricas = {
 
   conversion: {
     title: "Conversión",
-    empty: "Sin datos hasta la etapa 5.",
+    label: "Conversión de prueba (sandbox), separada de ventas",
+    lead: "Usuarios que activaron el plan Individual por primera vez con un pago de prueba. No son ventas reales.",
+    total: "Usuarios convertidos en total",
+    last30: "Convertidos en los últimos 30 días",
   },
 } as const;

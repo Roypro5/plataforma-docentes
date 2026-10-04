@@ -72,6 +72,13 @@ export const adminAuditoria = {
     "org.members_listed": "Lista de miembros consultada",
     "org.member_added": "Miembro agregado",
     "org.member_removed": "Miembro retirado",
+    "checkout.started": "Checkout de prueba iniciado",
+    "payment.resolved": "Pago de prueba resuelto",
+    "subscription.activated": "Plan de prueba activado",
+    "subscription.canceled": "Cancelación al final del periodo",
+    "subscription.resumed": "Plan reanudado",
+    "billing.subscriptions_listed": "Suscripciones consultadas",
+    "billing.payments_listed": "Pagos consultados",
   } as Record<string, string>,
   resourceTypes: {
     user: "Usuario",
@@ -80,6 +87,8 @@ export const adminAuditoria = {
     territory_unit: "Unidad territorial",
     education_catalog: "Catálogo educativo",
     organization: "Organización",
+    subscription: "Suscripción",
+    payment: "Pago",
   } as Record<string, string>,
   // Keys that appear in `details` (identifiers and codes only).
   detailKeys: {
@@ -94,5 +103,8 @@ export const adminAuditoria = {
     user_id: "Usuario",
     has_query: "Con texto de búsqueda",
     page: "Página",
+    plan: "Plan",
+    payment_id: "Pago",
+    result: "Resultado",
   } as Record<string, string>,
 } as const;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { CreditCard, LogOut, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHeader, Section } from "@/components/foundation/page-header";
 import { btnDanger, btnQuiet } from "@/components/cuenta/styles";
 import { signOutAction } from "@/core/auth/actions";
@@ -7,6 +7,7 @@ import { requireActiveViewer, viewerCan } from "@/core/auth/viewer";
 import { loadProfileContext } from "@/core/profile/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { es } from "@/i18n/es";
+import { planes } from "@/i18n/es-planes";
 
 export const metadata = { title: "Mi cuenta" };
 
@@ -56,6 +57,7 @@ export default async function Perfil() {
         </p>
       </Section>
       <div className="flex flex-wrap gap-2">
+        <Link href="/mi-plan" className={btnQuiet} data-testid="link-my-plan"><CreditCard className="h-4 w-4" aria-hidden />{planes.common.myPlan}</Link>
         {viewerCan(viewer, "admin.access") && (
           <Link href="/admin" className={btnQuiet} data-testid="link-admin"><ShieldCheck className="h-4 w-4" aria-hidden />{t.admin}</Link>
         )}

@@ -1,0 +1,43 @@
+name: E2E staging
+# Manual only: it signs in to staging with a test teacher account and makes sandbox (test) payments.
+# Nothing here uses a paid service. Required secrets (Settings > Secrets and variables > Actions):
+#   E2E_BASE_URL, E2E_DOCENTE_EMAIL, E2E_DOCENTE_PASSWORD
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: e2e-staging
+  cancel-in-progress: false
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The secrets are in the environment of the test step: keep the token out of .git/config.
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @workspace/docente exec playwright install --with-deps chromium
+      - run: pnpm --filter @workspace/docente test:e2e
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_DOCENTE_EMAIL: ${{ secrets.E2E_DOCENTE_EMAIL }}
+          E2E_DOCENTE_PASSWORD: ${{ secrets.E2E_DOCENTE_PASSWORD }}
+          # No page snapshot (error-context.md) on failure: it would copy form values into the artifact.
+          PLAYWRIGHT_NO_COPY_PROMPT: "1"
+      - uses: actions/upload-artifact@v4
+        # Only on failure, only the HTML report, kept for one day.
+        if: failure()
+        with:
+          name: e2e-staging-report
+          path: artifacts/docente/playwright-report
+          retention-days: 1

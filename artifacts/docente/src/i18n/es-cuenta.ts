@@ -128,7 +128,7 @@ export const cuenta = {
     title: "Eliminar tu cuenta",
     lead: "Antes de continuar, revisa qué ocurre.",
     points: [
-      "Se borran tu perfil, tus niveles y grados, tus aceptaciones de términos y tu acceso.",
+      "Se borran tu perfil, tus niveles y grados, tus aceptaciones de términos, tu acceso y, si los tienes, tu plan y tus pagos de prueba.",
       "Si perteneces a una organización, se retira tu membresía, pero la organización no se borra.",
       "Se conserva un registro de auditoría con un identificador interno, sin tu nombre ni correo.",
       "Por seguridad, si ingresaste hace más de 10 minutos te pediremos ingresar de nuevo.",

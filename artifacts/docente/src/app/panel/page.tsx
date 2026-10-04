@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, UserRound } from "lucide-react";
+import { ArrowRight, CreditCard, UserRound } from "lucide-react";
 import { PageHeader, Section } from "@/components/foundation/page-header";
 import { Notice } from "@/components/cuenta/notice";
 import { btnQuiet } from "@/components/cuenta/styles";
@@ -10,6 +10,7 @@ import { listMyModules, listNotifications, listVisibleAnnouncements, countUnread
 import { loadProfileContext } from "@/core/profile/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { es } from "@/i18n/es";
+import { planes } from "@/i18n/es-planes";
 
 export const metadata = { title: "Panel" };
 
@@ -52,6 +53,14 @@ export default async function Panel() {
         <Link href="/perfil" className={`${btnQuiet} w-full shrink-0 sm:w-auto`} data-testid="link-profile">
           <UserRound className="h-4 w-4" aria-hidden />
           {t.profileLink}
+        </Link>
+      </section>
+
+      <section aria-label={planes.entry.panelLabel} className="paper rise d1 flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6" data-testid="section-plan">
+        <p className="min-w-0 text-sm text-muted-foreground">{planes.entry.panelBody}</p>
+        <Link href="/mi-plan" className={`${btnQuiet} w-full shrink-0 sm:w-auto`} data-testid="link-my-plan-panel">
+          <CreditCard className="h-4 w-4" aria-hidden />
+          {planes.common.myPlan}
         </Link>
       </section>
 

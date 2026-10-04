@@ -1,4 +1,4 @@
-export const protectedPrefixes = ["/bienvenida", "/panel", "/notificaciones", "/modulos", "/perfil", "/admin", "/cuenta-suspendida"] as const;
+export const protectedPrefixes = ["/bienvenida", "/panel", "/notificaciones", "/modulos", "/perfil", "/admin", "/planes", "/mi-plan", "/cuenta-suspendida"] as const;
 
 export function isProtectedPath(path: string) {
   return protectedPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));

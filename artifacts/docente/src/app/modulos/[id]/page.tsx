@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Lock } from "lucide-react";
 import { PageHeader, Section } from "@/components/foundation/page-header";
 import { btnQuiet } from "@/components/cuenta/styles";
+import { DemoContent, DemoPlansLink } from "@/components/modulos/demo-content";
 import { AccessBadge } from "@/components/modulos/module-card";
 import { requireActiveViewer } from "@/core/auth/viewer";
 import { listMyModules } from "@/core/modules/queries";
@@ -40,7 +41,7 @@ export default async function Modulo({ params }: { params: Promise<{ id: string 
       {available ? (
         <Section title={t.page.contentTitle} aside={<AccessBadge access="available" />}>
           {id === "demo" ? (
-            <p className="text-sm leading-relaxed text-muted-foreground" data-testid="text-demo-note">{t.page.demoNote}</p>
+            <DemoContent />
           ) : (
             <p className="text-sm leading-relaxed text-muted-foreground">{t.accessNote.available}</p>
           )}
@@ -52,6 +53,7 @@ export default async function Modulo({ params }: { params: Promise<{ id: string 
             <div className="space-y-2 text-sm leading-relaxed">
               {access && <p className="font-medium">{t.accessNote[access]}</p>}
               <p className="text-muted-foreground">{failed ? es.modulos.panel.loadError : t.page.blockedBody}</p>
+              {id === "demo" && access === "requires_entitlement" && <DemoPlansLink />}
             </div>
           </div>
         </Section>

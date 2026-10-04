@@ -126,6 +126,5 @@ export const modulos = {
     back: "Volver al panel",
     blockedTitle: "Este módulo no está disponible para tu cuenta",
     blockedBody: "Por ahora no puedes entrar a este módulo. Vuelve al panel para ver los que sí están disponibles.",
-    demoNote: "Módulo de demostración. Solo existe en el entorno de prueba y no tiene funciones comerciales ni de IA.",
   },
 } as const;

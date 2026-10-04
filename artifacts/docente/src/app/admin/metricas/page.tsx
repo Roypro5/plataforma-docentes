@@ -53,6 +53,7 @@ export default async function MetricasPage() {
 
   const m = await loadMetrics();
   const overview = m.overview.data?.[0];
+  const conversion = m.conversion.data?.[0];
   const windows = [1, 7, 30].map((days) => ({
     days,
     users: toCount(m.active.data?.find((w) => Number(w.window_days) === days)?.active_users),
@@ -126,9 +127,18 @@ export default async function MetricasPage() {
       </Section>
 
       <Section title={t.conversion.title}>
-        <p className="text-sm text-muted-foreground" data-testid="text-conversion-empty">
-          {t.conversion.empty}
+        <p className="mb-1 text-sm font-medium" data-testid="text-conversion-label">
+          {t.conversion.label}
         </p>
+        <p className="mb-4 text-sm text-muted-foreground">{t.conversion.lead}</p>
+        {!conversion ? (
+          <Failed />
+        ) : (
+          <StatGrid columns="grid-cols-1 min-[420px]:grid-cols-2">
+            <Stat label={t.conversion.total} value={toCount(conversion.converted_users)} testId="stat-conversion-total" />
+            <Stat label={t.conversion.last30} value={toCount(conversion.converted_last_30_days)} testId="stat-conversion-30" />
+          </StatGrid>
+        )}
       </Section>
     </AdminShell>
   );
