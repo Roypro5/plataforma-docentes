@@ -1,7 +1,7 @@
 # Etapa 5 — Demo y reporte de verificación
 
 **Autorización:** el propietario autorizó la etapa 5 y aprobó su [plan](../architecture/etapa-5-plan.md), con las 6 decisiones de la sección 8 tal como se recomendaron, el 03/10/2026. Detalle técnico en el [contrato](../architecture/etapa-5-contrato.md), incluidos los límites conocidos B1, B3 y B7.
-**Estado:** **etapa 5 implementada, pendiente de aprobación del propietario.** Este reporte no cierra la etapa: el cierre requiere la aprobación explícita del propietario. Los puntos marcados ⏳ no tienen evidencia todavía.
+**Estado:** **etapa 5 cerrada** por aprobación del propietario el 05/10/2026, después de sus pruebas en staging. Con ella terminan las 5 etapas. El propietario pidió preparar el [plan de lanzamiento](../architecture/lanzamiento-plan.md), que debe aprobar antes de que empiece cualquier trabajo. Los puntos marcados ⏳ siguen sin evidencia y quedan como pendientes no bloqueantes.
 
 **Demo:** https://plataforma-docentesstaging.vercel.app (`/planes`, `/mi-plan`, `/modulos/demo` y, para admin con MFA, `/admin/planes-pagos`). Todo pago es una **prueba con pasarela sandbox propia**: no hay dinero, tarjetas ni proveedor de pagos real.
 
@@ -162,4 +162,4 @@ La etapa 5 es la última de las 5 etapas aprobadas. El siguiente paso **no es un
 
 ## Aprobación
 
-⏳ **Pendiente de aprobación del propietario.** La etapa 5 se considerará cerrada solo cuando el propietario lo apruebe de forma explícita.
+La etapa 5 quedó **cerrada** el 05/10/2026 con la aprobación explícita del propietario («apruebo el cierre y prepara el plan de lanzamiento»).
