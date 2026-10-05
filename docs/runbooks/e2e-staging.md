@@ -38,7 +38,7 @@ El workflow solo los pasa como variables de entorno al paso de pruebas; no los i
 ## 3. Lanzar el workflow
 
 1. En GitHub: pestaña **Actions → E2E staging → Run workflow** (rama `main`).
-2. Espera el resultado (unos minutos). El reporte HTML y las capturas de los fallos quedan como artifact `e2e-staging-report` durante 7 días.
+2. Espera el resultado (unos minutos). Si alguna prueba falla, el reporte HTML (con la captura de la pantalla del fallo) queda como artifact `e2e-staging-report` durante 1 día; si todo pasa, no se sube nada.
 3. No hay disparo automático: no corre en cada push, para no repetir pagos de prueba ni gastar cuota.
 
 Para correrla en local (opcional), con las tres variables definidas en tu terminal y sin escribirlas en archivos:

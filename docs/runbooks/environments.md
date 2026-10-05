@@ -153,7 +153,7 @@ La pasarela de prueba solo funciona donde se aplicó `supabase/seed.sql`, que re
 
 **Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C quedó pendiente como observación en ese cierre y se resolvió el 03/10/2026 (etapa 3). La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
 
-La etapa 2 **no está iniciada** y necesita aprobación explícita. Para preparar su ejecución se requerirán los proyectos Supabase de desarrollo/staging y su configuración segura, habilitación de correo/Google en Supabase Auth, identidad verificada del superadmin y validación de los textos mínimos de consentimiento y del responsable de datos. No enviar credenciales por chat ni cargar variables de etapa 2 antes de autorizarla.
+Las etapas 2, 3 y 4 están cerradas (ver `docs/reports/`). La etapa 5 está implementada y pendiente de aprobación del propietario ([reporte](../reports/etapa-5-verificacion.md)). Después de la etapa 5 no hay otra etapa: el lanzamiento necesita su propio plan y la aprobación explícita del propietario.
 
 ## Lanzamiento futuro
 
