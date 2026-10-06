@@ -2,8 +2,10 @@ export const metadata = { title: "Hoja de ruta", description: "Las cinco etapas 
 import { es } from "@/i18n/es";
 import { product } from "@/config/product";
 import { PageHeader } from "@/components/foundation/page-header";
+import { requireInternalPages } from "@/config/feature-guards";
 
 export default function Ruta() {
+  requireInternalPages();
   const t = es.ruta;
   return (
     <div className="space-y-10">

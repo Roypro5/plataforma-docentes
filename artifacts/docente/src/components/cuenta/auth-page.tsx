@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/foundation/page-header";
+import { features } from "@/config/features";
 import { es } from "@/i18n/es";
 import { Notice } from "./notice";
 
@@ -17,7 +18,7 @@ export function AuthPage({ eyebrow, title, lead, configured, children, footer }:
           </Notice>
         )}
         <div className="paper space-y-5 rounded-2xl border p-5 sm:p-6">{children}</div>
-        <p className="text-xs text-muted-foreground">{es.cuenta.common.testEnvironment}</p>
+        {features.stageInfo && <p className="text-xs text-muted-foreground">{es.cuenta.common.testEnvironment}</p>}
         {footer}
       </div>
     </div>

@@ -7,15 +7,23 @@ import { useSyncExternalStore, type ReactNode } from "react";
 import { BookOpen, HelpCircle, Home, LayoutDashboard, Map, Monitor, Moon, Palette, Sun } from "lucide-react";
 import { NotificationBell } from "@/components/modulos/notification-bell";
 import { es } from "@/i18n/es";
+import { features } from "@/config/features";
 import { product } from "@/config/product";
 
-export const navItems = [
-  { href: "/", key: "inicio", icon: Home },
-  { href: "/sistema", key: "sistema", icon: Palette },
-  { href: "/hoja-de-ruta", key: "ruta", icon: Map },
-  { href: "/ayuda", key: "ayuda", icon: HelpCircle },
-  { href: "/panel", key: "panel", icon: LayoutDashboard },
+const allNavItems = [
+  { href: "/", key: "inicio", icon: Home, internal: false },
+  { href: "/sistema", key: "sistema", icon: Palette, internal: true },
+  { href: "/hoja-de-ruta", key: "ruta", icon: Map, internal: true },
+  { href: "/ayuda", key: "ayuda", icon: HelpCircle, internal: false },
+  { href: "/panel", key: "panel", icon: LayoutDashboard, internal: false },
 ] as const;
+
+// Project pages ("Sistema visual", "Hoja de ruta") are not part of the product: they only
+// appear where the internal pages feature is on.
+export const navItems = allNavItems.filter((item) => features.internalPages || !item.internal);
+
+// Tailwind needs the full class name: the bottom bar has one column per item.
+const mobileColumns: Record<number, string> = { 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
 
 export function FoundationProvider({ children }: { children: ReactNode }) {
   return (
@@ -97,8 +105,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col border-r bg-surface/80 px-5 py-6 backdrop-blur md:flex">
         <Brand />
-        <div className="mt-6 flex items-center justify-between gap-2">
-          <p className="inline-flex w-fit rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">{es.shell.stageBadge}</p>
+        <div className={`mt-6 flex items-center gap-2 ${features.stageInfo ? "justify-between" : "justify-end"}`}>
+          {features.stageInfo && (
+            <p className="inline-flex w-fit rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">{es.shell.stageBadge}</p>
+          )}
           <NotificationBell />
         </div>
         <nav aria-label={es.shell.navLabel} className="mt-8 flex flex-col gap-1">
@@ -140,11 +150,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="md:pl-72">
         <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 outline-none sm:px-6 md:pb-12 md:pt-10 lg:px-10">
           {children}
-          <p className="mt-16 border-t pt-6 text-xs text-muted-foreground">{product.name} · {es.shell.footer}</p>
+          <p className="mt-16 border-t pt-6 text-xs text-muted-foreground">{product.name} · {features.stageInfo ? es.shell.footer : es.shell.footerProduct}</p>
         </main>
       </div>
 
-      <nav aria-label={es.shell.mobileNavLabel} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav aria-label={es.shell.mobileNavLabel} className={`fixed inset-x-0 bottom-0 z-30 grid ${mobileColumns[navItems.length] ?? "grid-cols-5"} border-t bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden`}>
         {navItems.map((n) => {
           const on = isActive(path, n.href);
           return (

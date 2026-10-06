@@ -4,7 +4,7 @@ Plataforma para docentes peruanos. Next.js App Router, TypeScript, Tailwind y Su
 
 ## Alcance
 
-Las 5 etapas están cerradas ([reporte etapa 2](docs/reports/etapa-2-verificacion.md), [reporte etapa 3](docs/reports/etapa-3-verificacion.md), [reporte etapa 4](docs/reports/etapa-4-verificacion.md), [reporte etapa 5](docs/reports/etapa-5-verificacion.md)). El [plan de lanzamiento](docs/architecture/lanzamiento-plan.md) está propuesto y pendiente de aprobación del propietario. La etapa 2 incluye: registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. La etapa 3 añade el panel, módulos «Próximamente» con «Avísame», avisos, notificaciones y manifiesto PWA. Pagos solo de prueba (sandbox), sin cobros reales. Cada etapa se cierra con demo, reporte de CI y aprobación del propietario.
+Las 5 etapas están cerradas ([reporte etapa 2](docs/reports/etapa-2-verificacion.md), [reporte etapa 3](docs/reports/etapa-3-verificacion.md), [reporte etapa 4](docs/reports/etapa-4-verificacion.md), [reporte etapa 5](docs/reports/etapa-5-verificacion.md)). El [plan de lanzamiento](docs/architecture/lanzamiento-plan.md) está aprobado; en curso la fase A (preparación técnica, sin costo). La etapa 2 incluye: registro e ingreso por correo y Google, recuperación, onboarding, perfil, consentimiento, eliminación de cuenta, MFA administrativo y esquema institucional con RLS. La etapa 3 añade el panel, módulos «Próximamente» con «Avísame», avisos, notificaciones y manifiesto PWA. Pagos solo de prueba (sandbox), sin cobros reales. Cada etapa se cierra con demo, reporte de CI y aprobación del propietario.
 
 Desarrollo y staging: servicios gratuitos. El propietario desplegó staging en Vercel Hobby: https://plataforma-docentesstaging.vercel.app/. No usar la API de Vercel ni contratar servicios pagados.
 
@@ -61,5 +61,7 @@ Documentación:
 
 - [Alcance aprobado](docs/architecture/approved-scope.md)
 - [Entornos y variables](docs/runbooks/environments.md)
+- [Producción: provisión, apertura y recuperación](docs/runbooks/produccion.md) (con `supabase/checks/produccion.sql`)
+- [Opciones de correo SMTP](docs/runbooks/smtp-opciones.md)
 - [Reporte de etapa 1](docs/reports/etapa-1-verificacion.md)
 - [Procedencia de catálogos, para etapa posterior](docs/catalogs/README.md)

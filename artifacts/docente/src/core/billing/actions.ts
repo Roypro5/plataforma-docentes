@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { FormState } from "@/components/cuenta/styles";
-import { resolveAppEnv } from "@/core/modules/access";
+import { features } from "@/config/features";
 import { planes } from "@/i18n/es-planes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CHECKOUT_PLAN, parsePaymentId, resolvePaymentSchema } from "./schemas";
@@ -14,9 +14,9 @@ const t = planes;
 // El navegador solo envía el id del pago y el resultado elegido; el plan es fijo y el importe,
 // el estado y los derechos los decide la base de datos.
 
-// Second defense next to app_private.sandbox_enabled(): in production no sandbox RPC is called.
+// Second defense next to app_private.sandbox_enabled(): with billing off (production) no billing RPC is called.
 function sandboxBlocked() {
-  return resolveAppEnv(process.env.NEXT_PUBLIC_APP_ENV) === "production";
+  return !features.billing;
 }
 
 async function authorizedClient() {
@@ -61,6 +61,7 @@ export async function resolveSandboxPaymentAction(_: FormState, form: FormData):
 }
 
 export async function cancelSubscriptionAction(): Promise<FormState> {
+  if (sandboxBlocked()) return { error: t.errors.denied };
   const supabase = await authorizedClient();
   if (!supabase) return { error: t.errors.generic };
   const { error } = await supabase.rpc("cancel_subscription");
@@ -70,6 +71,7 @@ export async function cancelSubscriptionAction(): Promise<FormState> {
 }
 
 export async function resumeSubscriptionAction(): Promise<FormState> {
+  if (sandboxBlocked()) return { error: t.errors.denied };
   const supabase = await authorizedClient();
   if (!supabase) return { error: t.errors.generic };
   const { error } = await supabase.rpc("resume_subscription");

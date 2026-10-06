@@ -3,6 +3,7 @@ import { CreditCard, LogOut, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHeader, Section } from "@/components/foundation/page-header";
 import { btnDanger, btnQuiet } from "@/components/cuenta/styles";
 import { signOutAction } from "@/core/auth/actions";
+import { features } from "@/config/features";
 import { requireActiveViewer, viewerCan } from "@/core/auth/viewer";
 import { loadProfileContext } from "@/core/profile/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,13 +24,17 @@ export default async function Perfil() {
     supabase.from("consent_records").select("document, version, accepted_at").order("accepted_at", { ascending: false }).limit(2),
   ]);
   const nameOf = (id: string | null) => context.territory.find((u) => u.id === id)?.name;
+  const hasTerritory = context.territory.some((u) => u.kind === "region");
   const education = context.catalog.filter((c) => context.selected.includes(c.id)).map((c) => c.name).join(", ");
+  // Without territory data there is no region or UGEL to show (nor to edit): the rows are left out.
+  const territoryRows: [string, string | null | undefined][] = hasTerritory
+    ? [[t.fields.region, nameOf(profile.region_id)], [t.fields.ugel, nameOf(profile.ugel_id)]]
+    : [];
   const rows: [string, string | null | undefined][] = [
     [t.fields.displayName, profile.display_name],
     [t.fields.email, viewer.email],
     [t.fields.country, context.countries.find((c) => c.code === profile.country_code)?.name],
-    [t.fields.region, nameOf(profile.region_id)],
-    [t.fields.ugel, nameOf(profile.ugel_id)],
+    ...territoryRows,
     [t.fields.institution, profile.institution_name],
     [t.fields.employment, profile.employment_status && es.cuenta.onboarding.employmentOptions[profile.employment_status]],
     [t.fields.education, education],
@@ -57,7 +62,9 @@ export default async function Perfil() {
         </p>
       </Section>
       <div className="flex flex-wrap gap-2">
-        <Link href="/mi-plan" className={btnQuiet} data-testid="link-my-plan"><CreditCard className="h-4 w-4" aria-hidden />{planes.common.myPlan}</Link>
+        {features.billing && (
+          <Link href="/mi-plan" className={btnQuiet} data-testid="link-my-plan"><CreditCard className="h-4 w-4" aria-hidden />{planes.common.myPlan}</Link>
+        )}
         {viewerCan(viewer, "admin.access") && (
           <Link href="/admin" className={btnQuiet} data-testid="link-admin"><ShieldCheck className="h-4 w-4" aria-hidden />{t.admin}</Link>
         )}

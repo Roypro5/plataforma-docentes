@@ -1,6 +1,6 @@
 # Lanzamiento — Plan: de staging a usuarios reales
 
-**Estado:** **propuesto, pendiente de aprobación del propietario.** No se provisiona producción ni se empieza ningún trabajo hasta que el propietario lo apruebe.
+**Estado:** **aprobado** por el propietario el 06/10/2026, con las recomendaciones de la sección 8: decisiones 1, 2, 5, 6 y 7 tal como se recomiendan. Las decisiones 3 (nombre y dominio), 4 (presupuesto), 8 (catálogo educativo) y 9 (legal) esperan los datos del propietario y no frenan la fase A. Autorizada **solo la fase A** (US$ 0). Las fases C, D y E necesitan cada una su confirmación.
 **Fuentes:**
 - [Fase 0 rev 0.2](fase-0-rev-0.2.md) §7 (entornos y coste), §8 (elementos postergados) y §9 (pendientes);
 - el [alcance aprobado](approved-scope.md), que prevalece;
@@ -64,14 +64,14 @@ Se puede hacer **antes** de pagar nada, mientras el propietario resuelve los dat
 5. **Respaldo y recuperación:** procedimiento escrito para el respaldo diario de Supabase Pro y una restauración de ensayo.
 6. **Endurecimiento pendiente:**
    - fijar las GitHub Actions por SHA;
-   - preparar la CI para Node 24 y Ubuntu 26;
+   - preparar la CI para Node 24 y fijar la imagen del runner (`ubuntu-24.04`), para que el cambio de `ubuntu-latest` a Ubuntu 26 no la modifique sin un commit revisado. Pasar a Ubuntu 26 queda como cambio aparte, probado antes;
    - implementar la política de retención en cuanto el propietario la defina.
 7. **Textos de lanzamiento:** integrar los textos legales revisados como una nueva versión. `ConsentRecord` guarda la versión aceptada. Producción empieza sin usuarios, así que todos aceptan la versión definitiva al registrarse. Pedir de nuevo la aceptación a usuarios existentes, cuando cambie una versión ya publicada, queda como mejora posterior. Añadir el responsable del tratamiento y el canal de soporte en `/legal` y `/ayuda`.
 8. **Accesibilidad manual:** checklist de teclado, foco, contraste y TalkBack en un Android de gama media, con resultados registrados. Es el pendiente ⏳ de la etapa 5.
 
 ### Fase B — Datos y decisiones del propietario (en paralelo a la fase A)
 
-- El nombre del producto y, si lo quiere, el dominio.
+- El nombre del producto y el dominio, que hace falta antes del piloto para el remitente del SMTP.
 - Textos legales revisados, responsable del tratamiento y correo de soporte.
 - Presupuesto máximo mensual.
 - Proveedor de SMTP.
@@ -84,7 +84,7 @@ Nada de esto se inventa: si falta un dato, queda como bloqueo documentado.
 
 - **Supabase Pro**, en una organización separada de dev y staging.
 - **Vercel Pro**, con su propio proyecto o entorno de producción.
-- La cuenta SMTP y, si aplica, el dominio.
+- La cuenta SMTP y el dominio verificado en ese proveedor.
 
 El propietario crea las cuentas y paga. Las claves se guardan solo en los gestores de cada proveedor. El SQL se aplica igual que en las etapas: por portapapeles y con una consulta de verificación.
 
@@ -149,7 +149,7 @@ Se mantienen las reglas de las etapas:
 |---|---|---|
 | 1 | ¿Lanzar en **dos pasos**: un piloto cerrado con docentes invitados y, después, la apertura pública? | **Sí.** Permite probar con datos reales y pocos usuarios mientras Google revisa la app y se valida el SMTP. |
 | 2 | ¿Producción **sin pagos**: todos en Gratis, con Planes y Mi plan ocultos, y los cobros reales en un plan aparte más adelante? | **Sí.** El sandbox no puede funcionar en producción, y hoy no hay ningún módulo funcional que vender. |
-| 3 | ¿Cuál es el **nombre del producto**? ¿Quieres un **dominio propio**? | El nombre es necesario antes del piloto, porque aparece en los correos y en la pantalla de Google. El dominio puede esperar a la apertura pública: el piloto puede usar la dirección `vercel.app` de producción. |
+| 3 | ¿Cuál es el **nombre del producto**? ¿Cuál será el **dominio propio**? | Los dos son necesarios **antes del piloto**. El nombre aparece en los correos y en la pantalla de Google. El dominio hace falta porque el SMTP exige verificar uno propio para el remitente ([smtp-opciones.md](../runbooks/smtp-opciones.md), actualización del 06/10/2026). La web del piloto puede seguir en la dirección `vercel.app` de producción. |
 | 4 | ¿Cuál es el **presupuesto máximo mensual** de producción? | Confirmar un tope que cubra la base de unos US$ 45, más el SMTP y el dominio, con alertas al 50, 80 y 100 %. Sin tope confirmado, no se provisiona. |
 | 5 | ¿Qué **proveedor de SMTP**? | Te preparo una comparación de 2 o 3 proveedores con nivel gratuito o de bajo costo, con tarifas consultadas en sus páginas en ese momento, y eliges tú. No creo cuentas ni contrato nada. |
 | 6 | **Territorio**: ¿importar el padrón oficial MINEDU antes del piloto, o hacer el piloto sin región ni UGEL e importarlo antes de la apertura? | **Piloto sin región ni UGEL**, con el campo oculto mientras no haya datos oficiales. La importación necesita un archivo oficial con URL exacta, fecha de corte y hash. Si consigues ese archivo, se importa antes. |

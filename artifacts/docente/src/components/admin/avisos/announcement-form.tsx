@@ -6,6 +6,7 @@ import { fieldClass } from "@/components/cuenta/styles";
 import { limaInputToIso } from "@/core/admin/avisos-dates";
 import { announcementPlans, announcementRoles, BODY_MAX, TITLE_MAX } from "@/core/admin/avisos-schemas";
 import { saveAnnouncementAction } from "@/core/admin/avisos-actions";
+import { features } from "@/config/features";
 import { adminAvisos } from "@/i18n/es-admin-avisos";
 import { AnnouncementPreview } from "./announcement-preview";
 import { audienceText, whenText } from "./audience";
@@ -160,7 +161,7 @@ export function AnnouncementForm({ initial, countries }: { initial: Announcement
         <div className="space-y-4">
           <div>
             <h2 className="text-base font-semibold">{t.form.audienceTitle}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t.form.audienceHint}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{features.billing ? t.form.audienceHint : t.form.audienceHintProduct}</p>
           </div>
           <CheckGroup
             legend={t.form.countriesLegend}

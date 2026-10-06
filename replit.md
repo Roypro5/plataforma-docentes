@@ -4,7 +4,7 @@ Producto para docentes peruanos, preparado para otros países. Respetar el alcan
 
 ## Reglas del proyecto
 
-- Las 5 etapas están cerradas (`docs/reports/`; etapa 5 cerrada el 05/10/2026). **Plan de lanzamiento propuesto y pendiente de aprobación:** `docs/architecture/lanzamiento-plan.md`. No empezar ningún trabajo de lanzamiento, ni provisionar producción, sin su aprobación. Mostrar demo y reporte de CI al cerrar cada fase; esperar aprobación antes de seguir.
+- Las 5 etapas están cerradas (`docs/reports/`; etapa 5 cerrada el 05/10/2026). **Plan de lanzamiento aprobado el 06/10/2026:** `docs/architecture/lanzamiento-plan.md`. Solo está autorizada la fase A (preparación técnica, US$ 0). No provisionar producción ni contratar servicios sin la confirmación de la fase C. Mostrar demo y reporte de CI al cerrar cada fase; esperar aprobación antes de seguir.
 - Stack aprobado: Next.js App Router + TypeScript + Supabase. No usar la base integrada ni cambiar a Express/Vite.
 - Desarrollo y staging: presupuesto US$0; no contratar servicios pagados.
 - No simular autenticación, pagos, guardado ni conectividad con terceros.
@@ -29,4 +29,5 @@ API Server y Canvas son scaffolds preexistentes y no se usan en la app. No crear
 - Migraciones SQL: `supabase/migrations/`; seed solo dev/staging: `supabase/seed.sql`; pruebas SQL/RLS: `pnpm --filter @workspace/docente test:rls`.
 - Conexión Supabase de etapa 2: `docs/runbooks/supabase-etapa-2.md`.
 - Variables, CI y entornos: `docs/runbooks/environments.md`.
+- Producción (lanzamiento): `docs/runbooks/produccion.md`, verificación `supabase/checks/produccion.sql` y opciones de correo `docs/runbooks/smtp-opciones.md`.
 - Reglas de procedencia de catálogos: `docs/catalogs/README.md`.

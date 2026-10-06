@@ -3,6 +3,7 @@ import { AdminDenied } from "@/components/admin/denied";
 import { BarList, EmptyMetric, SignupsTable, Stat, StatGrid } from "@/components/admin/metricas/metric-parts";
 import { Notice } from "@/components/cuenta/notice";
 import { Section } from "@/components/foundation/page-header";
+import { features } from "@/config/features";
 import { loadMetrics, type DistributionRow } from "@/core/admin/metricas-queries";
 import { distributionLabel, moduleName, toCount, type DistributionDimension } from "@/core/admin/metricas-view";
 import { requireAdmin } from "@/core/auth/viewer";
@@ -51,7 +52,7 @@ export default async function MetricasPage() {
     );
   }
 
-  const m = await loadMetrics();
+  const m = await loadMetrics(features.billing);
   const overview = m.overview.data?.[0];
   const conversion = m.conversion.data?.[0];
   const windows = [1, 7, 30].map((days) => ({
@@ -126,20 +127,22 @@ export default async function MetricasPage() {
         )}
       </Section>
 
-      <Section title={t.conversion.title}>
-        <p className="mb-1 text-sm font-medium" data-testid="text-conversion-label">
-          {t.conversion.label}
-        </p>
-        <p className="mb-4 text-sm text-muted-foreground">{t.conversion.lead}</p>
-        {!conversion ? (
-          <Failed />
-        ) : (
-          <StatGrid columns="grid-cols-1 min-[420px]:grid-cols-2">
-            <Stat label={t.conversion.total} value={toCount(conversion.converted_users)} testId="stat-conversion-total" />
-            <Stat label={t.conversion.last30} value={toCount(conversion.converted_last_30_days)} testId="stat-conversion-30" />
-          </StatGrid>
-        )}
-      </Section>
+      {features.billing && (
+        <Section title={t.conversion.title}>
+          <p className="mb-1 text-sm font-medium" data-testid="text-conversion-label">
+            {t.conversion.label}
+          </p>
+          <p className="mb-4 text-sm text-muted-foreground">{t.conversion.lead}</p>
+          {!conversion ? (
+            <Failed />
+          ) : (
+            <StatGrid columns="grid-cols-1 min-[420px]:grid-cols-2">
+              <Stat label={t.conversion.total} value={toCount(conversion.converted_users)} testId="stat-conversion-total" />
+              <Stat label={t.conversion.last30} value={toCount(conversion.converted_last_30_days)} testId="stat-conversion-30" />
+            </StatGrid>
+          )}
+        </Section>
+      )}
     </AdminShell>
   );
 }

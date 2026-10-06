@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveAppEnv } from "@/core/modules/access";
+import { features } from "@/config/features";
 import {
   historyRowSchema,
   myPlanRowSchema,
@@ -33,7 +33,7 @@ export async function getMyPlan(supabase: SupabaseClient): Promise<{ plan: MyPla
 /** `false` también cuando la consulta falla: sin confirmación no se ofrece el checkout. */
 export async function sandboxAvailable(supabase: SupabaseClient): Promise<boolean> {
   // Second defense: production never offers sandbox payments, whatever the database answers.
-  if (resolveAppEnv(process.env.NEXT_PUBLIC_APP_ENV) === "production") return false;
+  if (!features.billing) return false;
   const { data, error } = await supabase.rpc("sandbox_available");
   return !error && data === true;
 }

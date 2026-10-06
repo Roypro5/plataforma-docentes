@@ -10,12 +10,14 @@ import { listPayments, listSubscriptions } from "@/core/admin/facturacion-querie
 import { pagerParams, parseBillingFilters } from "@/core/admin/facturacion-schemas";
 import { requireAdmin } from "@/core/auth/viewer";
 import { adminFacturacion } from "@/i18n/es-admin-facturacion";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: adminFacturacion.metaTitle };
 
 const t = adminFacturacion;
 
 export default async function AdminPlanesPagos({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  requireBilling();
   const { viewer, allowed } = await requireAdmin("admin.billing.read");
   if (!allowed) {
     return (

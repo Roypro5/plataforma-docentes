@@ -59,6 +59,8 @@ export const adminAvisos = {
     endsHint: "Opcional. Si lo dejas vacío, el aviso no tiene fecha de fin.",
     audienceTitle: "Audiencia",
     audienceHint: "Si no marcas nada en un grupo, el aviso llega a todos los de ese grupo. Individual llega a quien tiene el plan de prueba vigente; Institucional aún no se ofrece.",
+    // Production has no payments: every account is on Gratis.
+    audienceHintProduct: "Si no marcas nada en un grupo, el aviso llega a todos los de ese grupo. Por ahora todas las cuentas están en el plan Gratis.",
     countriesLegend: "Países",
     rolesLegend: "Roles",
     plansLegend: "Planes",

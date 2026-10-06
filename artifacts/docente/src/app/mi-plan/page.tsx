@@ -14,12 +14,14 @@ import { CHECKOUT_PLAN, parsePage, totalPages } from "@/core/billing/schemas";
 import { planName } from "@/core/billing/status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { planes } from "@/i18n/es-planes";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: "Mi plan" };
 
 const t = planes.miPlan;
 
 export default async function MiPlan({ searchParams }: { searchParams: Promise<{ pagina?: string | string[] }> }) {
+  requireBilling();
   await requireActiveViewer();
   const supabase = (await createSupabaseServerClient())!;
   const page = parsePage((await searchParams).pagina);

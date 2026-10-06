@@ -27,7 +27,7 @@ El propietario confirmó que ambas variables están cargadas en **Production and
 
 La rama `main` utiliza el contexto que Vercel denomina **Production** dentro de un proyecto dedicado exclusivamente al staging. Ese nombre de Vercel no convierte este proyecto en la producción real del producto.
 
-Las variables `NEXT_PUBLIC_*` se incorporan al JavaScript durante el build: cambiarlas exige un nuevo despliegue y nunca deben contener secretos. `NEXT_PUBLIC_APP_ENV` etiqueta la telemetría y, desde la etapa 3, **oculta los módulos de solo desarrollo** (el módulo demo) cuando vale `production`; un valor ausente o desconocido cuenta como `production`. No configura aislamiento de bases. El proyecto Vercel de staging usa `staging` también en su ámbito «Production»; el futuro proyecto de producción real debe usar `production` o dejarla sin definir. Segunda defensa: la disponibilidad del demo solo existe en `supabase/seed.sql`, que nunca se aplica en producción.
+Las variables `NEXT_PUBLIC_*` se incorporan al JavaScript durante el build: cambiarlas exige un nuevo despliegue y nunca deben contener secretos. `NEXT_PUBLIC_APP_ENV` etiqueta la telemetría (Sentry usa la misma regla que la app) y, cuando vale `production`, activa el **modo producción** definido en `src/config/features.ts`: oculta el módulo demo, Planes y Mi plan (con sus Server Actions bloqueadas), «Sistema visual», «Hoja de ruta», la insignia de etapa y los avisos de «entorno de prueba», y muestra la portada de producto. Un valor ausente o desconocido cuenta como `production`. No configura aislamiento de bases. El proyecto Vercel de staging usa `staging` también en su ámbito «Production»; el futuro proyecto de producción real debe usar `production` o dejarla sin definir. Segunda defensa: la disponibilidad del demo solo existe en `supabase/seed.sql`, que nunca se aplica en producción.
 
 ### No cargar en Vercel en etapa 1
 
@@ -139,6 +139,8 @@ PostgreSQL se inicia como servicio efímero del runner de GitHub; no requiere Do
 
 El harness SQL prueba que la infraestructura de CI detecta violaciones RLS de lectura/escritura con un rol no privilegiado. No es evidencia de políticas del producto, que se implementan en etapa 2. Todo se revierte en transacción.
 
+Desde la fase A del lanzamiento, el build de la CI no define `NEXT_PUBLIC_APP_ENV`, así que es un build de **producción**, y `tests/smoke` comprueba el modo producción. Además, `playwright.config.ts` hace un segundo build de **staging** en `.next-staging` (puerto 3001) para `tests/smoke/staging`, que cubre las páginas que solo existen en dev y staging. No definir `NEXT_PUBLIC_APP_ENV` en el paso `build` de `foundation.yml`.
+
 Playwright/axe pasó remotamente en escritorio y móvil de 360 px. Esto no certifica WCAG completo ni sustituye una revisión manual. Mantener las ejecuciones dentro de las cuotas gratuitas de Actions.
 
 ### E2E contra staging (etapa 5)
@@ -153,9 +155,11 @@ La pasarela de prueba solo funciona donde se aplicó `supabase/seed.sql`, que re
 
 **Etapa 1 cerrada formalmente por solicitud del propietario:** demo de staging, CI remoto y recepción/indexación del error de Sentry verificados; dos proyectos Supabase Free independientes y revisión satisfactoria en iPhone 17 confirmados por el propietario. El resultado manual del Redmi 15C quedó pendiente como observación en ese cierre y se resolvió el 03/10/2026 (etapa 3). La separación técnica de bases y las políticas RLS del producto se implementarán y probarán en etapa 2; esta confirmación no sustituye esas pruebas.
 
-Las etapas 2 a 5 están cerradas (ver `docs/reports/`; la etapa 5, el 05/10/2026). No hay más etapas: el lanzamiento sigue su propio [plan](../architecture/lanzamiento-plan.md), que necesita la aprobación explícita del propietario.
+Las etapas 2 a 5 están cerradas (ver `docs/reports/`; la etapa 5, el 05/10/2026). No hay más etapas: el lanzamiento sigue su propio [plan](../architecture/lanzamiento-plan.md), aprobado el 06/10/2026. Solo está autorizada la fase A.
 
 ## Lanzamiento futuro
+
+Guía paso a paso: [produccion.md](produccion.md), con su verificación `supabase/checks/produccion.sql`. Opciones de correo: [smtp-opciones.md](smtp-opciones.md).
 
 Solo por autorización posterior: Supabase Pro + Vercel Pro, sin PITR. Base orientativa US$45, no presupuesto máximo aprobado. RPO 24h/RTO 8h son objetivos, no restauración verificada.
 

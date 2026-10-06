@@ -15,6 +15,7 @@ import { parsePaymentId, type SandboxResult } from "@/core/billing/schemas";
 import { isPaymentOpen, planName } from "@/core/billing/status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { planes } from "@/i18n/es-planes";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: "Pasarela de prueba (sandbox)" };
 
@@ -28,6 +29,7 @@ const choices: { result: SandboxResult; label: string; primary: boolean }[] = [
 ];
 
 export default async function Sandbox({ params }: { params: Promise<{ pago: string }> }) {
+  requireBilling();
   const id = parsePaymentId((await params).pago);
   if (!id) notFound();
   await requireActiveViewer();

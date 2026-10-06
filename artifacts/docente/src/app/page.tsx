@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Circle, Info, Smartphone, Languages, Accessibility, ShieldCheck, Lock } from "lucide-react";
 import { es } from "@/i18n/es";
+import { ProductHome } from "@/components/foundation/product-home";
+import { features } from "@/config/features";
 import { product } from "@/config/product";
 
 const pIcons = [Smartphone, Languages, Accessibility, ShieldCheck];
 
 export default function Home() {
+  if (!features.stageInfo) return <ProductHome />;
   const t = es.home;
   return (
     <div className="space-y-10">

@@ -27,6 +27,8 @@ npx supabase db push
 
 Con la opción B, el seed se aplica igual que en la opción A, desde el SQL Editor.
 
+**Cuidado con la opción B:** `db push` aplica **todas** las migraciones de la carpeta, incluidas las que todavía no se han aprobado. Por ejemplo, el catálogo educativo del lanzamiento espera la decisión 8. Mientras haya una migración pendiente de aprobación, usar la opción A.
+
 Comprobación rápida en el SQL Editor (debe devolver 14):
 
 ```sql

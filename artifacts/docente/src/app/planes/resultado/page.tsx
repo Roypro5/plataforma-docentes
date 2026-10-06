@@ -11,6 +11,7 @@ import { parsePaymentId, type PaymentRow } from "@/core/billing/schemas";
 import { paymentOutcome, planName } from "@/core/billing/status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { planes } from "@/i18n/es-planes";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: "Resultado del pago" };
 
@@ -19,6 +20,7 @@ const t = planes.resultado;
 // Esta página solo LEE el estado guardado del pago (get_payment). El parámetro ?pago= es un id:
 // nunca indica ni acredita un resultado.
 export default async function Resultado({ searchParams }: { searchParams: Promise<{ pago?: string | string[] }> }) {
+  requireBilling();
   await requireActiveViewer();
   const id = parsePaymentId((await searchParams).pago);
   const supabase = (await createSupabaseServerClient())!;

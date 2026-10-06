@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { FoundationProvider, AppShell } from "@/components/foundation/shell";
 import "./globals.css";
+import { features } from "@/config/features";
 import { product } from "@/config/product";
+import { es } from "@/i18n/es";
 
 export const metadata: Metadata = {
   title: { default: `${product.name} · Tu espacio docente`, template: `%s · ${product.name}` },
-  description: "Plataforma para docentes peruanos. Versión de prueba en desarrollo, sin cobros.",
+  description: features.stageInfo ? es.meta.description : es.meta.descriptionProduct,
   robots: { index: false, follow: false },
   openGraph: {
     title: `${product.name} · Tu espacio docente`,
-    description: "Un espacio pensado para acompañar tu trabajo docente. Versión de prueba en desarrollo.",
+    description: features.stageInfo ? es.meta.ogDescription : es.meta.ogDescriptionProduct,
     locale: "es_PE",
     type: "website",
   },

@@ -5,6 +5,7 @@ import { Notice } from "@/components/cuenta/notice";
 import { btnQuiet } from "@/components/cuenta/styles";
 import { ModuleCard } from "@/components/modulos/module-card";
 import { NotificationList } from "@/components/modulos/notification-list";
+import { features } from "@/config/features";
 import { requireActiveViewer } from "@/core/auth/viewer";
 import { listMyModules, listNotifications, listVisibleAnnouncements, countUnread } from "@/core/modules/queries";
 import { loadProfileContext } from "@/core/profile/queries";
@@ -56,13 +57,15 @@ export default async function Panel() {
         </Link>
       </section>
 
-      <section aria-label={planes.entry.panelLabel} className="paper rise d1 flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6" data-testid="section-plan">
-        <p className="min-w-0 text-sm text-muted-foreground">{planes.entry.panelBody}</p>
-        <Link href="/mi-plan" className={`${btnQuiet} w-full shrink-0 sm:w-auto`} data-testid="link-my-plan-panel">
-          <CreditCard className="h-4 w-4" aria-hidden />
-          {planes.common.myPlan}
-        </Link>
-      </section>
+      {features.billing && (
+        <section aria-label={planes.entry.panelLabel} className="paper rise d1 flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6" data-testid="section-plan">
+          <p className="min-w-0 text-sm text-muted-foreground">{planes.entry.panelBody}</p>
+          <Link href="/mi-plan" className={`${btnQuiet} w-full shrink-0 sm:w-auto`} data-testid="link-my-plan-panel">
+            <CreditCard className="h-4 w-4" aria-hidden />
+            {planes.common.myPlan}
+          </Link>
+        </section>
+      )}
 
       <Section title={t.modulesTitle}>
         <p className="mb-4 max-w-2xl text-sm text-muted-foreground">{t.modulesLead}</p>

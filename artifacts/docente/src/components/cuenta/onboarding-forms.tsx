@@ -48,23 +48,28 @@ export function Step2Form({ territory, regionId, ugelId, institutionName, employ
   const [region, setRegion] = useState(regionId);
   const regions = territory.filter((u) => u.kind === "region");
   const ugels = territory.filter((u) => u.kind === "ugel" && u.parent_id === region);
+  // Without territory data (production has none until the official list is imported) there is
+  // nothing to pick: the fields are not rendered and the server leaves the saved values alone.
+  const hasTerritory = regions.length > 0;
   return (
     <form action={action} className="space-y-5">
-      {territory.some((u) => u.is_synthetic) && <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{t.syntheticNotice}</p>}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field id="regionId" label={t.region}>
-          <select id="regionId" name="regionId" value={region} onChange={(e) => setRegion(e.target.value)} className={fieldClass} data-testid="select-region">
-            <option value="">{t.none}</option>
-            {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        </Field>
-        <Field id="ugelId" label={t.ugel}>
-          <select id="ugelId" name="ugelId" key={region} defaultValue={region === regionId ? ugelId : ""} disabled={!region} className={fieldClass} data-testid="select-ugel">
-            <option value="">{region ? t.none : t.chooseRegionFirst}</option>
-            {ugels.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </Field>
-      </div>
+      {hasTerritory && territory.some((u) => u.is_synthetic) && <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{t.syntheticNotice}</p>}
+      {hasTerritory && (
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field id="regionId" label={t.region}>
+            <select id="regionId" name="regionId" value={region} onChange={(e) => setRegion(e.target.value)} className={fieldClass} data-testid="select-region">
+              <option value="">{t.none}</option>
+              {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </Field>
+          <Field id="ugelId" label={t.ugel}>
+            <select id="ugelId" name="ugelId" key={region} defaultValue={region === regionId ? ugelId : ""} disabled={!region} className={fieldClass} data-testid="select-ugel">
+              <option value="">{region ? t.none : t.chooseRegionFirst}</option>
+              {ugels.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </Field>
+        </div>
+      )}
       <Field id="institutionName" label={t.institution} hint={t.institutionHint}>
         <input id="institutionName" name="institutionName" maxLength={200} defaultValue={institutionName} aria-describedby="institutionName-hint" className={fieldClass} data-testid="input-institution" />
       </Field>

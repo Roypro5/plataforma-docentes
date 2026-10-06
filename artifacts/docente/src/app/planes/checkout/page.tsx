@@ -13,12 +13,14 @@ import { CHECKOUT_PLAN } from "@/core/billing/schemas";
 import { planName } from "@/core/billing/status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { planes } from "@/i18n/es-planes";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: "Resumen de compra" };
 
 const t = planes;
 
 export default async function Checkout() {
+  requireBilling();
   await requireActiveViewer();
   const supabase = (await createSupabaseServerClient())!;
   const [list, mine, sandbox] = await Promise.all([listPlans(supabase), getMyPlan(supabase), sandboxAvailable(supabase)]);

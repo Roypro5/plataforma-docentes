@@ -10,6 +10,21 @@ export const es = {
     home: "Inicio",
     stageBadge: "Etapa 5 de 5 · Planes de prueba",
     footer: "Versión de prueba. No uses datos personales reales: el entorno no está habilitado para usuarios reales.",
+    // Production (no stage information): the footer says nothing about test or stages.
+    footerProduct: "Plataforma para docentes del Perú.",
+    notFound: {
+      eyebrow: "Error 404",
+      title: "Esta página no existe",
+      body: "Puedes volver al inicio para explorar la demostración.",
+      bodyProduct: "Revisa la dirección o vuelve al inicio.",
+      back: "Volver al inicio",
+    },
+  },
+  meta: {
+    description: "Plataforma para docentes peruanos. Versión de prueba en desarrollo, sin cobros.",
+    ogDescription: "Un espacio pensado para acompañar tu trabajo docente. Versión de prueba en desarrollo.",
+    descriptionProduct: "Plataforma en español para docentes del Perú.",
+    ogDescriptionProduct: "Un espacio pensado para acompañar tu trabajo docente.",
   },
   nav: {
     inicio: { label: "Inicio", short: "Inicio", desc: "Bienvenida y visión" },
@@ -62,6 +77,23 @@ export const es = {
     ],
     done: "Listo",
     pending: "Pendiente",
+  },
+  // Home page of production: it talks about the product, not about the project stages.
+  homeProduct: {
+    lead:
+      "Una plataforma en español para docentes del Perú, pensada para funcionar bien en celulares Android de gama media. Hoy puedes crear tu cuenta, guardar tu perfil docente y seguir los módulos que estamos preparando.",
+    ctaRegister: "Registrarme",
+    ctaSignIn: "Ingresar",
+    todayTitle: "Qué puedes hacer hoy",
+    today: [
+      { title: "Crear tu cuenta", body: "Regístrate e ingresa con tu correo o con tu cuenta de Google. Si olvidas tu contraseña, puedes recuperarla." },
+      { title: "Guardar tu perfil docente", body: "Indica los niveles y grados en los que enseñas. Puedes editar tu perfil cuando quieras." },
+      { title: "Tener tu panel", body: "En tu panel ves los módulos que estamos preparando. Con «Avísame» te notificamos aquí, dentro de la plataforma, cuando uno esté disponible." },
+      { title: "Recibir avisos y notificaciones", body: "Los avisos de la plataforma y tus notificaciones aparecen en tu panel y en la campana de notificaciones." },
+    ],
+    soonTitle: "Lo que todavía no está disponible",
+    soonBody: "Estos módulos aún no se pueden usar: los estamos preparando. Hoy la plataforma es gratuita y no hay planes de pago.",
+    soonBadge: "Planificado",
   },
   sistema: {
     eyebrow: "Sistema visual",
@@ -125,6 +157,8 @@ export const es = {
     ],
   },
   ayuda: {
+    metaDescription: "Alcance de esta versión de prueba y respuestas frecuentes.",
+    metaDescriptionProduct: "Respuestas frecuentes sobre la plataforma.",
     eyebrow: "Ayuda",
     title: "Alcance y preguntas frecuentes",
     lead: "Respuestas directas sobre lo que esta versión hace y lo que todavía no.",
@@ -135,6 +169,15 @@ export const es = {
       { q: "¿Funciona en mi celular?", a: "Está diseñada para celulares Android de gama media y pantallas desde 360 píxeles de ancho." },
       { q: "¿Hay pagos o suscripciones?", a: "Hay un plan Individual de prueba (S/ 19.90 al mes) con una pasarela de prueba (sandbox). No se cobra dinero real, no se piden tarjetas y no hay renovación automática." },
       { q: "¿Puedo borrar mi cuenta?", a: "Sí. Desde Mi cuenta puedes eliminarla: se borran tu perfil, tu acceso y, si los tienes, tu plan y tus pagos de prueba." },
+    ],
+    // Production variant: no test environment, no sandbox plans, no visual-system page.
+    faqProduct: [
+      { q: "¿Puedo crear una cuenta?", a: "Sí. Puedes registrarte con tu correo o con tu cuenta de Google y completar tu perfil docente." },
+      { q: "¿Qué módulos hay?", a: "Los módulos (generador de materiales con IA, biblioteca personal, marketplace de materiales y cursos y simulacros) aún no están disponibles. Los verás en tu panel como «Próximamente» y puedes pulsar «Avísame» para que te notifiquemos aquí cuando estén listos." },
+      { q: "¿Qué se recuerda en mi dispositivo?", a: "Tu preferencia de tema y, si ingresas, las cookies de sesión necesarias para mantenerte conectado." },
+      { q: "¿Funciona en mi celular?", a: "Está diseñada para celulares Android de gama media y pantallas desde 360 píxeles de ancho." },
+      { q: "¿Hay pagos o suscripciones?", a: "No. Por ahora la plataforma es gratuita y no hay planes de pago. No se te pide ninguna tarjeta ni dato de pago." },
+      { q: "¿Puedo borrar mi cuenta?", a: "Sí. Desde Mi cuenta puedes eliminarla: se borran tu perfil, tus niveles y grados, tus aceptaciones de términos y tu acceso." },
     ],
     contactTitle: "Contacto",
     contactPending: "Los canales oficiales de contacto se publicarán más adelante. Por ahora no hay correo ni teléfono habilitados.",

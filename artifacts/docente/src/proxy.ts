@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig } from "@/lib/supabase/config";
+import { features, isBillingPath } from "@/config/features";
 import { isProtectedPath } from "@/core/auth/routes";
 
 // Refreshes the Supabase session before rendering and sends anonymous visitors of
@@ -8,6 +9,11 @@ import { isProtectedPath } from "@/core/auth/routes";
 export async function proxy(request: NextRequest) {
   const config = getSupabaseConfig();
   const path = request.nextUrl.pathname;
+
+  // Pages of a feature that is off answer 404 to everybody (the page itself calls notFound()):
+  // no redirect to sign in that would hint they exist, and no session work for them.
+  if (!features.billing && isBillingPath(path)) return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   let signedIn = false;

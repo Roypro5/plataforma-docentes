@@ -6,6 +6,7 @@ import { legal } from "@/config/legal";
 import { onboardingStep1Schema, onboardingStep2Schema, onboardingStep3Schema } from "@/core/auth/schemas";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hasAcceptedCurrentLegal } from "./queries";
+import { step2Fields } from "./step2";
 import { es } from "@/i18n/es";
 
 const t = es.cuenta.onboarding;
@@ -74,12 +75,8 @@ export async function saveStep2Action(_: FormState, form: FormData): Promise<For
     employmentStatus: form.get("employmentStatus") ?? "",
   });
   if (!skip && !parsed.success) return { error: t.errorCoherence };
-  const fields = skip || !parsed.success ? {} : {
-    region_id: parsed.data.regionId,
-    ugel_id: parsed.data.regionId ? parsed.data.ugelId : null,
-    institution_name: parsed.data.institutionName,
-    employment_status: parsed.data.employmentStatus,
-  };
+  // Region and UGEL are optional: without territory data the form does not render them (see Step2Form).
+  const fields = skip || !parsed.success ? {} : step2Fields(parsed.data, form.has("regionId"));
   const { data, error } = await supabase
     .from("profiles")
     .update({ ...fields, onboarding_step: nextStep(profile.onboarding_step, 3) })

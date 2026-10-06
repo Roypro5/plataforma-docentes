@@ -20,7 +20,8 @@ async function block<T>(fn: string, args?: Record<string, unknown>, permission: 
   return { data: result.ok ? result.data : null };
 }
 
-export async function loadMetrics() {
+/** `withConversion` is the billing feature: without it the sandbox conversion is neither queried nor shown. */
+export async function loadMetrics(withConversion: boolean) {
   const [overview, signups, active, region, level, grade, interest, conversion] = await Promise.all([
     block<Overview[]>("admin_metric_overview"),
     block<SignupDay[]>("admin_metric_signups", { p_days: 30 }),
@@ -30,7 +31,9 @@ export async function loadMetrics() {
     distribution("grade"),
     block<InterestRow[]>("admin_metric_module_interest"),
     // Conversion reads sandbox billing data, so the database requires admin.billing.read.
-    block<ConversionRow[]>("admin_metric_conversion", undefined, "admin.billing.read"),
+    withConversion
+      ? block<ConversionRow[]>("admin_metric_conversion", undefined, "admin.billing.read")
+      : Promise.resolve<Block<ConversionRow[]>>({ data: null }),
   ]);
   return { overview, signups, active, distribution: { region, level, grade }, interest, conversion };
 }

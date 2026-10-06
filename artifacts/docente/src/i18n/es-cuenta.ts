@@ -6,7 +6,7 @@ export const cuenta = {
     show: "Mostrar contraseña",
     sending: "Enviando…",
     genericError: "No pudimos completar la acción. Inténtalo de nuevo en unos minutos.",
-    emailRateLimit: "Se alcanzó el límite de correos que puede enviar el entorno de prueba. Inténtalo de nuevo en una hora.",
+    emailRateLimit: "Se alcanzó el límite de envío de correos. Inténtalo de nuevo en una hora.",
     notConfiguredTitle: "Las cuentas aún no están conectadas en este entorno",
     notConfiguredBody:
       "Falta configurar Supabase Auth para este despliegue. No simulamos inicios de sesión: cuando el entorno esté conectado, este formulario funcionará.",
@@ -129,6 +129,13 @@ export const cuenta = {
     lead: "Antes de continuar, revisa qué ocurre.",
     points: [
       "Se borran tu perfil, tus niveles y grados, tus aceptaciones de términos, tu acceso y, si los tienes, tu plan y tus pagos de prueba.",
+      "Si perteneces a una organización, se retira tu membresía, pero la organización no se borra.",
+      "Se conserva un registro de auditoría con un identificador interno, sin tu nombre ni correo.",
+      "Por seguridad, si ingresaste hace más de 10 minutos te pediremos ingresar de nuevo.",
+    ],
+    // Production variant of the first point: no sandbox plans or payments exist there.
+    pointsProduct: [
+      "Se borran tu perfil, tus niveles y grados, tus aceptaciones de términos y tu acceso.",
       "Si perteneces a una organización, se retira tu membresía, pero la organización no se borra.",
       "Se conserva un registro de auditoría con un identificador interno, sin tu nombre ni correo.",
       "Por seguridad, si ingresaste hace más de 10 minutos te pediremos ingresar de nuevo.",

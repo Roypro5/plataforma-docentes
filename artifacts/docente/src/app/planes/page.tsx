@@ -9,12 +9,14 @@ import { getMyPlan, listPlans, sandboxAvailable } from "@/core/billing/queries";
 import { CHECKOUT_PLAN } from "@/core/billing/schemas";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { planes } from "@/i18n/es-planes";
+import { requireBilling } from "@/config/feature-guards";
 
 export const metadata = { title: "Planes" };
 
 const t = planes;
 
 export default async function Planes() {
+  requireBilling();
   await requireActiveViewer();
   const supabase = (await createSupabaseServerClient())!;
   const [list, mine, sandbox] = await Promise.all([listPlans(supabase), getMyPlan(supabase), sandboxAvailable(supabase)]);
