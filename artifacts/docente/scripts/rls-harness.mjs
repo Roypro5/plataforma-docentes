@@ -102,7 +102,143 @@ try {
   for (const file of readdirSync(join(supabaseDir, "migrations")).filter((f) => f.endsWith(".sql")).sort()) {
     await q(readFileSync(join(supabaseDir, "migrations", file), "utf8"));
   }
-  await q(readFileSync(join(supabaseDir, "seed.sql"), "utf8"));
+
+  // --- Production simulation (lanzamiento, fase A): migrations only, NEVER the seed. ---
+  // The database holds exactly what production will have after applying the migrations, so
+  // these checks run here, before seed.sql. Each test rolls back its fixtures.
+  const catalogMigration = readFileSync(join(supabaseDir, "migrations/20261007000100_launch_education_catalog.sql"), "utf8");
+  const productionCheck = readFileSync(join(supabaseDir, "checks/produccion.sql"), "utf8");
+  const seedSql = readFileSync(join(supabaseDir, "seed.sql"), "utf8");
+  const catalogSnapshot = async () =>
+    (await q(`SELECT c.kind, c.code, c.name, c.sort_order, c.active, c.source, l.code AS level
+              FROM education_catalog c
+              LEFT JOIN education_catalog_relations r ON r.to_id = c.id
+              LEFT JOIN education_catalog l ON l.id = r.from_id
+              ORDER BY c.kind, c.code, l.code`)).rows;
+  const relationCount = async () => (await q("SELECT count(*)::int AS n FROM education_catalog_relations")).rows[0].n;
+  // Runs produccion.sql inside a read-only subtransaction: any write or DDL fails with 25006.
+  const runProductionCheck = async () => {
+    await q("SAVEPOINT ro");
+    try {
+      await q("SET TRANSACTION READ ONLY");
+      const result = await q(productionCheck);
+      assert(!Array.isArray(result) && result.rowCount === 1, "produccion.sql must be one statement returning one row");
+      return result.rows[0];
+    } finally {
+      await q("ROLLBACK TO SAVEPOINT ro");
+      assert((await q("SHOW transaction_read_only")).rows[0].transaction_read_only === "off", "read-only mode leaked");
+    }
+  };
+  const expectedProduction = {
+    tablas_publicas: 26,
+    tablas_sin_rls: 0,
+    sandbox_activo: false,
+    territorio_sintetico: 0,
+    territorio_total: 0,
+    aviso_de_prueba: 0,
+    demo_disponible: 0,
+    usuarios_seed: 0,
+    niveles: 3,
+    grados: 14,
+    relaciones_nivel_grado: 14,
+    grados_sin_nivel: 0,
+    fuente_catalogo: "preliminar-pendiente-revision",
+    precios_activos: "individual PE PEN 1990/month",
+    superadmins_activos: 0,
+    superadmins_con_mfa: 0,
+    admins_activos: 0,
+    // 20261006000200 revoked the last one (app_private.reject_duplicate_consent()).
+    privilegios_anon: 0,
+  };
+  const diff = (actual, expected) =>
+    Object.keys({ ...actual, ...expected })
+      .filter((k) => actual[k] !== expected[k])
+      .map((k) => `${k}: got ${JSON.stringify(actual[k])}, expected ${JSON.stringify(expected[k])}`)
+      .join("; ");
+  const expectedGrades = {
+    inicial: ["inicial-3", "inicial-4", "inicial-5"],
+    primaria: ["primaria-1", "primaria-2", "primaria-3", "primaria-4", "primaria-5", "primaria-6"],
+    secundaria: ["secundaria-1", "secundaria-2", "secundaria-3", "secundaria-4", "secundaria-5"],
+  };
+  let productionCatalog = [];
+
+  await test("production (no seed): the migrations alone create the PE education catalog, 3 levels and 14 grades", async () => {
+    productionCatalog = await catalogSnapshot();
+    const levels = productionCatalog.filter((r) => r.kind === "level");
+    const grades = productionCatalog.filter((r) => r.kind === "grade");
+    assert(JSON.stringify(levels.map((r) => [r.code, r.sort_order])) === JSON.stringify([["inicial", 1], ["primaria", 2], ["secundaria", 3]]), `levels ${JSON.stringify(levels)}`);
+    assert(productionCatalog.every((r) => r.kind !== "area"), "no curricular areas expected yet");
+    for (const [level, codes] of Object.entries(expectedGrades)) {
+      const got = grades.filter((r) => r.level === level).map((r) => r.code);
+      assert(JSON.stringify(got) === JSON.stringify(codes), `${level} grades ${JSON.stringify(got)}`);
+    }
+    assert(grades.length === 14 && grades.every((r) => r.level), "every grade needs exactly one level");
+    assert(productionCatalog.every((r) => r.active && r.source === "preliminar-pendiente-revision"), "catalog must be active and labelled pending review");
+    assert(await relationCount() === 14, "expected 14 level-grade relations");
+  });
+
+  await test("production (no seed): onboarding completes with one level and no region or UGEL", async () => {
+    const user = (await q("INSERT INTO auth.users (email, email_confirmed_at) VALUES ('prod@example.test', now()) RETURNING id")).rows[0].id;
+    await as(user);
+    assert(await count("SELECT 1 FROM regions") === 0 && await count("SELECT 1 FROM ugels") === 0, "production must have no territory");
+    const level = (await q("SELECT id FROM education_catalog WHERE kind = 'level' AND code = 'primaria'")).rows[0]?.id;
+    assert(level, "the signed-in user cannot read the catalog");
+    // Same writes as the onboarding Server Actions: consent + step 1, step 2 without territory
+    // fields (the form omits them when there is no territory data), step 3 RPC.
+    await q("INSERT INTO consent_records (user_id, document, version) VALUES ($1, 'terminos', 'v'), ($1, 'privacidad', 'v')", [user]);
+    assert(await count("UPDATE profiles SET display_name = 'Docente', country_code = 'PE', onboarding_step = 2 WHERE user_id = $1 RETURNING 1", [user]) === 1, "step 1 not saved");
+    assert(await count("UPDATE profiles SET institution_name = 'IE de prueba', employment_status = 'contratado', onboarding_step = 3 WHERE user_id = $1 RETURNING 1", [user]) === 1, "step 2 not saved");
+    await q("SELECT public.save_education_selection($1, true)", [[level]]);
+    await checkDeferred();
+    const { rows } = await q("SELECT region_id, ugel_id, onboarding_completed_at FROM profiles WHERE user_id = $1", [user]);
+    assert(rows[0].region_id === null && rows[0].ugel_id === null && rows[0].onboarding_completed_at !== null, "onboarding not completed");
+  });
+
+  await test("production (no seed): produccion.sql is one read-only SELECT with the expected values, before and after bootstrap", async () => {
+    const statements = productionCheck.replace(/--.*$/gm, "").split(";").map((s) => s.trim()).filter(Boolean);
+    assert(statements.length === 1 && /^select\b/i.test(statements[0]), "produccion.sql must be a single SELECT");
+    const before = await runProductionCheck();
+    assert(!diff(before, expectedProduction), `before bootstrap: ${diff(before, expectedProduction)}`);
+    const owner = (await q("INSERT INTO auth.users (email, email_confirmed_at) VALUES ('owner@example.test', now()) RETURNING id")).rows[0].id;
+    await q("SELECT app_private.bootstrap_superadmin($1)", [owner]);
+    const after = await runProductionCheck();
+    const expectedAfter = { ...expectedProduction, superadmins_activos: 1 };
+    assert(!diff(after, expectedAfter), `after bootstrap: ${diff(after, expectedAfter)}`);
+    // Only a verified TOTP factor counts; an unverified TOTP or a verified WebAuthn does not.
+    await q("INSERT INTO auth.mfa_factors (user_id, factor_type, status) VALUES ($1, 'totp', 'unverified'), ($1, 'webauthn', 'verified')", [owner]);
+    const pending = await runProductionCheck();
+    assert(!diff(pending, expectedAfter), `unverified MFA: ${diff(pending, expectedAfter)}`);
+    await q("INSERT INTO auth.mfa_factors (user_id, factor_type, status) VALUES ($1, 'totp', 'verified')", [owner]);
+    const ready = await runProductionCheck();
+    const expectedReady = { ...expectedAfter, superadmins_con_mfa: 1 };
+    assert(!diff(ready, expectedReady), `ready to open: ${diff(ready, expectedReady)}`);
+    // A second verified factor still counts one superadmin; a suspended one counts none.
+    await q("INSERT INTO auth.mfa_factors (user_id, factor_type, status) VALUES ($1, 'totp', 'verified')", [owner]);
+    assert((await runProductionCheck()).superadmins_con_mfa === 1, "superadmins must be counted once");
+    await q("UPDATE users SET status = 'suspended' WHERE id = $1", [owner]);
+    const suspended = await runProductionCheck();
+    assert(suspended.superadmins_activos === 0 && suspended.superadmins_con_mfa === 0, "suspended superadmin counted");
+  });
+
+  await test("production (no seed): produccion.sql counts every privilege granted to anon", async () => {
+    const base = expectedProduction.privilegios_anon;
+    const anon = async () => (await runProductionCheck()).privilegios_anon;
+    const { rows: [fn] } = await q(`SELECT has_function_privilege('anon', 'app_private.reject_duplicate_consent()', 'EXECUTE') AS anon,
+                                           has_function_privilege('authenticated', 'app_private.reject_duplicate_consent()', 'EXECUTE') AS auth`);
+    assert(!fn.anon && !fn.auth, "reject_duplicate_consent() must not be executable by anon or authenticated");
+    await q("GRANT SELECT ON public.countries TO anon");
+    assert(await anon() === base + 1, "table grant to anon not detected");
+    await q("GRANT SELECT (code) ON public.roles TO anon");
+    assert(await anon() === base + 2, "column grant to anon not detected");
+    await q("GRANT EXECUTE ON FUNCTION public.list_my_modules() TO anon");
+    assert(await anon() === base + 3, "function grant to anon not detected");
+    await q("GRANT SELECT ON public.plans TO PUBLIC");
+    assert(await anon() === base + 4, "grant to PUBLIC not detected");
+    await q("GRANT USAGE ON SEQUENCE public.activity_events_id_seq TO anon");
+    assert(await anon() === base + 5, "sequence grant to anon not detected");
+  });
+
+  await q(seedSql);
 
   // Fixtures, created as the owner exactly as Supabase Auth would insert users.
   const ids = {};
@@ -119,6 +255,42 @@ try {
   await q("UPDATE users SET status = 'suspended' WHERE id = $1", [ids.suspended]);
   const catalog = Object.fromEntries((await q("SELECT code, id FROM education_catalog")).rows.map((r) => [r.code, r.id]));
   const territory = Object.fromEntries((await q("SELECT official_code, id FROM territory_units")).rows.map((r) => [r.official_code, r.id]));
+
+  await test("launch catalog (dev/staging): seed and catalog migration never duplicate rows, in either order", async () => {
+    const same = async (label) => {
+      const now = await catalogSnapshot();
+      assert(JSON.stringify(now) === JSON.stringify(productionCatalog), `${label}: catalog differs from the migration's list`);
+      assert(await count("SELECT 1 FROM education_catalog") === 17 && await relationCount() === 14, `${label}: expected 17 rows and 14 relations`);
+    };
+    await same("migrations + seed"); // the seed adds nothing beyond the migration
+    await q(catalogMigration);
+    await q(seedSql);
+    await q(catalogMigration);
+    await same("re-applied");
+    // Real dev/staging order: the seed created the rows long before this migration exists.
+    await q("DELETE FROM education_catalog");
+    await q(seedSql);
+    await same("seed only");
+    await q(catalogMigration);
+    await same("seed, then migration");
+  });
+
+  await test("produccion.sql flags dev/staging data (sandbox, synthetic territory, seed rows)", async () => {
+    await q("UPDATE users SET is_seed = true WHERE id = $1", [ids.a]);
+    const dev = await runProductionCheck();
+    const expectedDev = {
+      ...expectedProduction,
+      sandbox_activo: true,
+      territorio_sintetico: 5,
+      territorio_total: 5,
+      aviso_de_prueba: 1,
+      demo_disponible: 1,
+      usuarios_seed: 1,
+      superadmins_activos: 1,
+      admins_activos: 1,
+    };
+    assert(!diff(dev, expectedDev), diff(dev, expectedDev));
+  });
 
   await test("matrix: SQL permission matrix matches permission-matrix.json", async () => {
     const { rows } = await q("SELECT role_code, permission FROM app_private.permission_matrix()");

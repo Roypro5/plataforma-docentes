@@ -5,6 +5,10 @@
 --    requisito de cierre antes de usuarios reales.
 -- 2. Catálogo educativo PRELIMINAR: estructura general de niveles y grados de la Educación
 --    Básica Regular, pendiente de revisión del propietario. Sin áreas curriculares todavía.
+--    Copia exacta de migrations/20261007000100_launch_education_catalog.sql, que lo llevará
+--    a producción cuando el propietario confirme la lista. Se mantiene aquí para que dev y
+--    staging no dependan de esa migración mientras no se aplique; el harness comprueba que
+--    ambas listas coinciden y que juntas no duplican filas. Si cambia una, cambia la otra.
 -- 3–4. Etapa 3: demo con derecho requerido y aviso de prueba (ver al final).
 -- Idempotente: se puede ejecutar varias veces.
 

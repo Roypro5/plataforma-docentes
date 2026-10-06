@@ -38,3 +38,18 @@ $$;
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(auth.jwt() ->> 'sub', '')::uuid
 $$;
+
+-- Factores MFA de Supabase Auth: solo las columnas que lee supabase/checks/produccion.sql,
+-- con los mismos tipos enumerados. Las sesiones aal2 se siguen emulando con el claim aal.
+create type auth.factor_type as enum ('totp', 'webauthn', 'phone');
+create type auth.factor_status as enum ('unverified', 'verified');
+
+create table auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  friendly_name text,
+  factor_type auth.factor_type not null,
+  status auth.factor_status not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
