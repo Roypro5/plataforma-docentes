@@ -7,7 +7,7 @@ Pasos que hace el **propietario** en los paneles de Supabase, Google Cloud y Ver
 Archivos:
 
 - `supabase/migrations/20261003000100_stage2_identity.sql`: esquema, privilegios, RLS y funciones. Va a **todos** los entornos.
-- `supabase/seed.sql`: territorio **sintético**, catálogo educativo **preliminar** y, desde la etapa 3, la disponibilidad del módulo demo y un «Aviso de prueba». Solo para desarrollo y staging, **nunca** producción: en producción haría visibles el demo (bloqueado) y el aviso de prueba.
+- `supabase/seed.sql`: territorio **sintético** y, desde la etapa 3, la disponibilidad del módulo demo y un «Aviso de prueba». Solo para desarrollo y staging, **nunca** producción: en producción haría visibles el demo (bloqueado) y el aviso de prueba.
 
 Opción A, panel: Supabase → proyecto → **SQL Editor** → pegar el contenido completo de la migración → Run. Después, en una consulta nueva, pegar `seed.sql` → Run.
 
@@ -27,7 +27,7 @@ npx supabase db push
 
 Con la opción B, el seed se aplica igual que en la opción A, desde el SQL Editor.
 
-**Cuidado con la opción B:** `db push` aplica **todas** las migraciones de la carpeta, incluidas las que todavía no se han aprobado. Por ejemplo, el catálogo educativo del lanzamiento espera la decisión 8. Mientras haya una migración pendiente de aprobación, usar la opción A.
+**Cuidado con la opción B:** `db push` aplica **todas** las migraciones de la carpeta, incluidas las que todavía no se han aprobado. Mientras haya una migración pendiente de aprobación, usar la opción A. Desde el lanzamiento, el catálogo educativo (niveles y grados) viene de la migración `20261007000100_launch_education_catalog.sql`, no del seed.
 
 Comprobación rápida en el SQL Editor (debe devolver 14):
 

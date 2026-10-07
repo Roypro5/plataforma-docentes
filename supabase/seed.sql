@@ -3,12 +3,11 @@
 -- 1. Territorio SINTÉTICO: marcado is_synthetic y source 'sintetico'. Sustituye al padrón
 --    oficial MINEDU–ESCALE solo mientras se completa su importación (docs/catalogs/README.md),
 --    requisito de cierre antes de usuarios reales.
--- 2. Catálogo educativo PRELIMINAR: estructura general de niveles y grados de la Educación
---    Básica Regular, pendiente de revisión del propietario. Sin áreas curriculares todavía.
---    Copia exacta de migrations/20261007000100_launch_education_catalog.sql, que lo llevará
---    a producción cuando el propietario confirme la lista. Se mantiene aquí para que dev y
---    staging no dependan de esa migración mientras no se aplique; el harness comprueba que
---    ambas listas coinciden y que juntas no duplican filas. Si cambia una, cambia la otra.
+-- 2. Catálogo educativo: YA NO está en el seed. Lo crea la migración
+--    migrations/20261007000100_launch_education_catalog.sql (lista confirmada por el
+--    propietario el 07/10/2026), que se aplica en todos los entornos, siempre antes que este
+--    seed. En dev y staging esa migración también reetiqueta las filas que creó la versión
+--    anterior de este seed. El harness comprueba que el seed no inserta filas del catálogo.
 -- 3–4. Etapa 3: demo con derecho requerido y aviso de prueba (ver al final).
 -- Idempotente: se puede ejecutar varias veces.
 
@@ -27,34 +26,6 @@ from (values
 join public.territory_units r
   on r.country_code = 'PE' and r.kind = 'region' and r.official_code = v.region_code
 on conflict (country_code, kind, official_code) do nothing;
-
-insert into public.education_catalog (country_code, kind, code, name, sort_order, source) values
-  ('PE', 'level', 'inicial', 'Inicial', 1, 'preliminar-pendiente-revision'),
-  ('PE', 'level', 'primaria', 'Primaria', 2, 'preliminar-pendiente-revision'),
-  ('PE', 'level', 'secundaria', 'Secundaria', 3, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'inicial-3', '3 años', 11, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'inicial-4', '4 años', 12, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'inicial-5', '5 años', 13, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-1', '1.º de primaria', 21, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-2', '2.º de primaria', 22, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-3', '3.º de primaria', 23, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-4', '4.º de primaria', 24, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-5', '5.º de primaria', 25, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'primaria-6', '6.º de primaria', 26, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'secundaria-1', '1.º de secundaria', 31, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'secundaria-2', '2.º de secundaria', 32, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'secundaria-3', '3.º de secundaria', 33, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'secundaria-4', '4.º de secundaria', 34, 'preliminar-pendiente-revision'),
-  ('PE', 'grade', 'secundaria-5', '5.º de secundaria', 35, 'preliminar-pendiente-revision')
-on conflict (country_code, kind, code) do nothing;
-
-insert into public.education_catalog_relations (from_id, to_id)
-select l.id, g.id
-from public.education_catalog l
-join public.education_catalog g
-  on g.country_code = l.country_code and g.kind = 'grade' and g.code like l.code || '-%'
-where l.country_code = 'PE' and l.kind = 'level'
-on conflict do nothing;
 
 -- 3. Etapa 3 (SOLO dev y staging): el módulo demo queda disponible en PE pero exige
 --    demo.access, que ningún usuario tiene hasta la etapa 5 (resultado: requires_entitlement).

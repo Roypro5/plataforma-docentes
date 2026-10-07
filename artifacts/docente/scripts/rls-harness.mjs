@@ -116,6 +116,15 @@ try {
               LEFT JOIN education_catalog l ON l.id = r.from_id
               ORDER BY c.kind, c.code, l.code`)).rows;
   const relationCount = async () => (await q("SELECT count(*)::int AS n FROM education_catalog_relations")).rows[0].n;
+  // Decision 8: the owner confirmed the list on 2026-10-07. Dev and staging still hold the
+  // rows of the old seed, labelled preliminaryLabel, until the catalog migration relabels them.
+  const confirmedLabel = "confirmado-propietario-2026-10-07";
+  const preliminaryLabel = "preliminar-pendiente-revision";
+  // One-line check handed to the owner after applying the migration in dev and staging.
+  // Expected: niveles 3, grados 14, relaciones 14, etiqueta_nueva 17.
+  const ownerCatalogCheck = `select count(*) filter (where kind = 'level') as niveles, count(*) filter (where kind = 'grade') as grados, (select count(*) from public.education_catalog_relations r join public.education_catalog l on l.id = r.from_id and l.kind = 'level' and l.country_code = 'PE') as relaciones, count(*) filter (where source = '${confirmedLabel}') as etiqueta_nueva from public.education_catalog where country_code = 'PE';`;
+  const runOwnerCatalogCheck = async () =>
+    Object.fromEntries(Object.entries((await q(ownerCatalogCheck)).rows[0]).map(([k, v]) => [k, Number(v)]));
   // Runs produccion.sql inside a read-only subtransaction: any write or DDL fails with 25006.
   const runProductionCheck = async () => {
     await q("SAVEPOINT ro");
@@ -142,7 +151,7 @@ try {
     grados: 14,
     relaciones_nivel_grado: 14,
     grados_sin_nivel: 0,
-    fuente_catalogo: "preliminar-pendiente-revision",
+    fuente_catalogo: confirmedLabel,
     precios_activos: "individual PE PEN 1990/month",
     superadmins_activos: 0,
     superadmins_con_mfa: 0,
@@ -173,8 +182,10 @@ try {
       assert(JSON.stringify(got) === JSON.stringify(codes), `${level} grades ${JSON.stringify(got)}`);
     }
     assert(grades.length === 14 && grades.every((r) => r.level), "every grade needs exactly one level");
-    assert(productionCatalog.every((r) => r.active && r.source === "preliminar-pendiente-revision"), "catalog must be active and labelled pending review");
+    assert(productionCatalog.every((r) => r.active && r.source === confirmedLabel), `catalog must be active and labelled ${confirmedLabel}`);
     assert(await relationCount() === 14, "expected 14 level-grade relations");
+    const owner = await runOwnerCatalogCheck();
+    assert(JSON.stringify(owner) === JSON.stringify({ niveles: 3, grados: 14, relaciones: 14, etiqueta_nueva: 17 }), `owner catalog check ${JSON.stringify(owner)}`);
   });
 
   await test("production (no seed): onboarding completes with one level and no region or UGEL", async () => {
@@ -256,7 +267,7 @@ try {
   const catalog = Object.fromEntries((await q("SELECT code, id FROM education_catalog")).rows.map((r) => [r.code, r.id]));
   const territory = Object.fromEntries((await q("SELECT official_code, id FROM territory_units")).rows.map((r) => [r.official_code, r.id]));
 
-  await test("launch catalog (dev/staging): seed and catalog migration never duplicate rows, in either order", async () => {
+  await test("launch catalog (dev/staging): the seed inserts no catalog rows and the migration is idempotent", async () => {
     const same = async (label) => {
       const now = await catalogSnapshot();
       assert(JSON.stringify(now) === JSON.stringify(productionCatalog), `${label}: catalog differs from the migration's list`);
@@ -267,12 +278,91 @@ try {
     await q(seedSql);
     await q(catalogMigration);
     await same("re-applied");
-    // Real dev/staging order: the seed created the rows long before this migration exists.
     await q("DELETE FROM education_catalog");
     await q(seedSql);
-    await same("seed only");
+    assert(await count("SELECT 1 FROM education_catalog") === 0 && await relationCount() === 0, "seed.sql must not insert catalog rows");
     await q(catalogMigration);
     await same("seed, then migration");
+  });
+
+  // Catalog block of seed.sql before 2026-10-07, verbatim: what dev and staging hold today.
+  const legacySeedCatalog = `
+    insert into public.education_catalog (country_code, kind, code, name, sort_order, source) values
+      ('PE', 'level', 'inicial', 'Inicial', 1, '${preliminaryLabel}'),
+      ('PE', 'level', 'primaria', 'Primaria', 2, '${preliminaryLabel}'),
+      ('PE', 'level', 'secundaria', 'Secundaria', 3, '${preliminaryLabel}'),
+      ('PE', 'grade', 'inicial-3', '3 años', 11, '${preliminaryLabel}'),
+      ('PE', 'grade', 'inicial-4', '4 años', 12, '${preliminaryLabel}'),
+      ('PE', 'grade', 'inicial-5', '5 años', 13, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-1', '1.º de primaria', 21, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-2', '2.º de primaria', 22, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-3', '3.º de primaria', 23, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-4', '4.º de primaria', 24, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-5', '5.º de primaria', 25, '${preliminaryLabel}'),
+      ('PE', 'grade', 'primaria-6', '6.º de primaria', 26, '${preliminaryLabel}'),
+      ('PE', 'grade', 'secundaria-1', '1.º de secundaria', 31, '${preliminaryLabel}'),
+      ('PE', 'grade', 'secundaria-2', '2.º de secundaria', 32, '${preliminaryLabel}'),
+      ('PE', 'grade', 'secundaria-3', '3.º de secundaria', 33, '${preliminaryLabel}'),
+      ('PE', 'grade', 'secundaria-4', '4.º de secundaria', 34, '${preliminaryLabel}'),
+      ('PE', 'grade', 'secundaria-5', '5.º de secundaria', 35, '${preliminaryLabel}')
+    on conflict (country_code, kind, code) do nothing;
+
+    insert into public.education_catalog_relations (from_id, to_id)
+    select l.id, g.id
+    from public.education_catalog l
+    join public.education_catalog g
+      on g.country_code = l.country_code and g.kind = 'grade' and g.code like l.code || '-%'
+    where l.country_code = 'PE' and l.kind = 'level'
+    on conflict do nothing;`;
+  const confirmedKeys = new Set(Object.entries(expectedGrades).flatMap(([level, grades]) => [`PE/level/${level}`, ...grades.map((g) => `PE/grade/${g}`)]));
+  const fullCatalog = async () => ({
+    rows: (await q("SELECT id, country_code, kind, code, name, sort_order, active, source FROM education_catalog ORDER BY country_code, kind, code")).rows,
+    relations: (await q("SELECT from_id, to_id FROM education_catalog_relations ORDER BY from_id, to_id")).rows,
+  });
+
+  await test("launch catalog (dev/staging): after the old preliminary seed, the migration relabels exactly the 17 rows and changes nothing else", async () => {
+    assert(confirmedKeys.size === 17, "expected 17 confirmed keys");
+    await q("DELETE FROM education_catalog");
+    await q(legacySeedCatalog);
+    assert(await count("SELECT 1 FROM education_catalog WHERE source = $1", [preliminaryLabel]) === 17 && await relationCount() === 14, "legacy seed must create 17 preliminary rows and 14 relations");
+    // Admin edits made in dev/staging before the migration: rename and deactivate (both kept).
+    await q("UPDATE education_catalog SET name = 'Primaria (renombrada)' WHERE kind = 'level' AND code = 'primaria'");
+    await q("UPDATE education_catalog SET active = false WHERE kind = 'grade' AND code = 'inicial-3'");
+    // Control rows with the preliminary label that the migration must NOT relabel: same code
+    // with another kind, another PE code, and a confirmed code in another country.
+    await q("INSERT INTO countries (code, name, currency, locale, time_zone) VALUES ('CL', 'Chile', 'CLP', 'es-CL', 'America/Santiago')");
+    await q(`INSERT INTO education_catalog (country_code, kind, code, name, sort_order, source) VALUES
+               ('PE', 'area', 'primaria', 'Control área', 90, $1),
+               ('PE', 'grade', 'primaria-7', 'Control grado', 27, $1),
+               ('CL', 'level', 'primaria', 'Control país', 1, $1),
+               ('CL', 'grade', 'primaria-1', 'Control país grado', 21, $1)`, [preliminaryLabel]);
+    const before = await fullCatalog();
+    await q(catalogMigration);
+    const after = await fullCatalog();
+    assert(JSON.stringify(after.relations) === JSON.stringify(before.relations), "relations changed");
+    assert(after.rows.length === before.rows.length, `row count changed: ${before.rows.length} -> ${after.rows.length}`);
+    for (const [i, old] of before.rows.entries()) {
+      const key = `${old.country_code}/${old.kind}/${old.code}`;
+      const expected = confirmedKeys.has(key) ? { ...old, source: confirmedLabel } : old;
+      assert(JSON.stringify(after.rows[i]) === JSON.stringify(expected), `${key}: got ${JSON.stringify(after.rows[i])}, expected ${JSON.stringify(expected)}`);
+    }
+    assert(await count("SELECT 1 FROM education_catalog WHERE source = $1", [confirmedLabel]) === 17, "expected exactly 17 relabelled rows");
+    await q(catalogMigration);
+    assert(JSON.stringify(await fullCatalog()) === JSON.stringify(after), "second application changed something");
+    // The owner's check and produccion.sql see the confirmed catalog once the controls are gone.
+    await q("DELETE FROM education_catalog WHERE name LIKE 'Control %'");
+    const owner = await runOwnerCatalogCheck();
+    assert(JSON.stringify(owner) === JSON.stringify({ niveles: 3, grados: 14, relaciones: 14, etiqueta_nueva: 17 }), `owner catalog check ${JSON.stringify(owner)}`);
+    assert((await runProductionCheck()).fuente_catalogo === confirmedLabel, "produccion.sql must report only the confirmed label");
+  });
+
+  await test("launch catalog (dev/staging): the relabel only touches rows that still carry the preliminary label", async () => {
+    await q("DELETE FROM education_catalog");
+    await q(legacySeedCatalog);
+    await q("UPDATE education_catalog SET source = 'otra-fuente' WHERE kind = 'grade' AND code = 'secundaria-5'");
+    await q(catalogMigration);
+    const { rows } = await q("SELECT source, count(*)::int AS n FROM education_catalog GROUP BY source ORDER BY source");
+    assert(JSON.stringify(rows) === JSON.stringify([{ source: confirmedLabel, n: 16 }, { source: "otra-fuente", n: 1 }]), `sources ${JSON.stringify(rows)}`);
   });
 
   await test("produccion.sql flags dev/staging data (sandbox, synthetic territory, seed rows)", async () => {

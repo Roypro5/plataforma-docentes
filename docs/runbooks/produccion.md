@@ -13,7 +13,7 @@ Reglas de siempre:
 - [ ] Nombre del producto (decisión 3), integrado en `src/config/product.ts`.
 - [ ] Dominio comprado, al menos para el remitente del correo. Ver [smtp-opciones.md](smtp-opciones.md).
 - [ ] Proveedor de SMTP elegido (decisión 5).
-- [ ] Catálogo educativo confirmado por el propietario (decisión 8), con su migración actualizada si cambió.
+- [x] Catálogo educativo confirmado por el propietario el 07/10/2026 (decisión 8), en la migración `20261007000100_launch_education_catalog.sql`.
 - [ ] Textos legales revisados, responsable del tratamiento y correo de soporte (decisión 9), integrados y publicados en staging.
 - [ ] La CI está en verde y staging se ha probado con el modo producción de la fase A.
 
@@ -28,7 +28,6 @@ Se ven en el build de producción y **deben cambiar antes del piloto**. No se in
 | `src/i18n/es-cuenta.ts`, casilla de consentimiento del onboarding | «versión …, en revisión legal» y el enlace «Leer los borradores» | Decisión 9 |
 | `src/i18n/es.ts`, `ayuda.contactPending` | «no hay correo ni teléfono habilitados» | Decisión 9 (canal de soporte) |
 | `src/config/product.ts` | `name: "[NOMBRE]"`, en el título, la portada y el manifiesto PWA | Decisión 3 |
-| Administración › Catálogos | Etiqueta `preliminar-pendiente-revision` del catálogo educativo | Decisión 8 |
 
 ## 1. Supabase de producción
 
@@ -38,7 +37,6 @@ Se ven en el build de producción y **deben cambiar antes del piloto**. No se in
 2. Usar en *Project Settings* la misma configuración de API que dev y staging. Ver [environments.md](environments.md), «Data API»: Data API activada y RLS automático activado.
 3. **Aplicar las migraciones** de `supabase/migrations/`, una por una y en orden de nombre, desde el SQL Editor.
    - **No usar `npx supabase db push`** para producción: aplica todo lo que hay en la carpeta, incluidas las migraciones que todavía no se han aprobado.
-   - `20261007000100_launch_education_catalog.sql` solo se aplica cuando el propietario confirme la lista (decisión 8), primero en dev y en staging.
    - **No aplicar nunca `supabase/seed.sql`.** Ese archivo habilita los pagos de prueba, el módulo demo, el territorio sintético y el aviso de prueba.
    - **No aplicar nunca `supabase/tests/supabase-shim.sql`.**
 4. Ejecutar `supabase/checks/produccion.sql` en el SQL Editor y comparar cada columna con el valor esperado que indica su comentario. Si algo no coincide, **no seguir**: avisar y revisar.

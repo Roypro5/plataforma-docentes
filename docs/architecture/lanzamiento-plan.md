@@ -1,6 +1,6 @@
 # Lanzamiento — Plan: de staging a usuarios reales
 
-**Estado:** **aprobado** por el propietario el 06/10/2026, con las recomendaciones de la sección 8: decisiones 1, 2, 5, 6 y 7 tal como se recomiendan. Las decisiones 3 (nombre y dominio), 4 (presupuesto), 8 (catálogo educativo) y 9 (legal) esperan los datos del propietario y no frenan la fase A. Autorizada **solo la fase A** (US$ 0). Las fases C, D y E necesitan cada una su confirmación.
+**Estado:** **aprobado** por el propietario el 06/10/2026, con las recomendaciones de la sección 8: decisiones 1, 2, 5, 6 y 7 tal como se recomiendan. La decisión 8 (catálogo educativo) se confirmó el 07/10/2026 sin cambios en la lista. Las decisiones 3 (nombre y dominio, en espera por elección del propietario el 07/10/2026), 4 (presupuesto) y 9 (legal) esperan los datos del propietario y no frenan la fase A. Autorizada **solo la fase A** (US$ 0). Las fases C, D y E necesitan cada una su confirmación.
 **Fuentes:**
 - [Fase 0 rev 0.2](fase-0-rev-0.2.md) §7 (entornos y coste), §8 (elementos postergados) y §9 (pendientes);
 - el [alcance aprobado](approved-scope.md), que prevalece;
@@ -30,7 +30,7 @@ Es el resultado de revisar el código y los reportes. Los tres primeros puntos s
 
 | # | Bloqueo | Por qué importa | Quién lo resuelve |
 |---|---|---|---|
-| 1 | **El catálogo educativo** (niveles y grados) solo existe en `seed.sql`, que nunca se aplica en producción | El onboarding exige al menos un nivel. Sin catálogo, **ningún docente puede terminar el registro** en producción | Propietario revisa la lista preliminar → yo la paso a una migración |
+| 1 | **El catálogo educativo** (niveles y grados) solo existe en `seed.sql`, que nunca se aplica en producción | El onboarding exige al menos un nivel. Sin catálogo, **ningún docente puede terminar el registro** en producción | ✅ Resuelto: el propietario confirmó la lista el 07/10/2026 y está en la migración `20261007000100_launch_education_catalog.sql` |
 | 2 | **Sin territorio oficial**: regiones y UGEL son sintéticas y viven en el seed | En producción la lista de regiones quedaría vacía | Decisión 6 |
 | 3 | **La app muestra contenido de desarrollo**: insignia «Etapa 5 de 5», portada y estado de etapas, «Sistema visual», «Hoja de ruta», y Planes y Mi plan aunque en producción no se pueda pagar | Un docente real vería un proyecto en construcción y una página de planes que no funciona | Yo (fase A) |
 | 4 | Nombre del producto: `[NOMBRE]` es provisional | Aparece en todas las pantallas, correos y la pantalla de Google | Propietario |
@@ -52,7 +52,7 @@ Se puede hacer **antes** de pagar nada, mientras el propietario resuelve los dat
    - una portada de producto en vez del estado de etapas.
 
    Se prueba en staging forzando ese modo en una prueba de humo, sin tocar la configuración de staging.
-2. **Catálogo educativo como migración:** la lista que apruebe el propietario, con `source` revisado. Solo se inserta si no existe: en dev y staging no duplica el seed.
+2. **Catálogo educativo como migración:** la lista confirmada por el propietario el 07/10/2026, con `source = 'confirmado-propietario-2026-10-07'`. Solo se inserta si no existe y reetiqueta las filas preliminares que el seed había creado en dev y staging. El seed ya no trae el catálogo.
 3. **Runbook de producción** (`docs/runbooks/produccion.md`):
    - crear la organización Supabase Pro separada de la Free;
    - aplicar las migraciones en orden y **nunca** el seed;
@@ -154,7 +154,7 @@ Se mantienen las reglas de las etapas:
 | 5 | ¿Qué **proveedor de SMTP**? | Te preparo una comparación de 2 o 3 proveedores con nivel gratuito o de bajo costo, con tarifas consultadas en sus páginas en ese momento, y eliges tú. No creo cuentas ni contrato nada. |
 | 6 | **Territorio**: ¿importar el padrón oficial MINEDU antes del piloto, o hacer el piloto sin región ni UGEL e importarlo antes de la apertura? | **Piloto sin región ni UGEL**, con el campo oculto mientras no haya datos oficiales. La importación necesita un archivo oficial con URL exacta, fecha de corte y hash. Si consigues ese archivo, se importa antes. |
 | 7 | ¿**Ocultar en producción** las páginas internas («Sistema visual», «Hoja de ruta» y los textos de etapas), sin dejar de mostrarlas en dev y staging? | **Sí.** Son herramientas del proyecto, no del producto. |
-| 8 | **Catálogo educativo:** ¿la lista preliminar (Inicial: 3, 4 y 5 años; Primaria: 1.º a 6.º; Secundaria: 1.º a 5.º) es correcta para producción? | Revísala tú y confírmala o corrígela. Por ahora, sin áreas curriculares. |
+| 8 | **Catálogo educativo:** ¿la lista preliminar (Inicial: 3, 4 y 5 años; Primaria: 1.º a 6.º; Secundaria: 1.º a 5.º) es correcta para producción? | Revísala tú y confírmala o corrígela. Por ahora, sin áreas curriculares. **Confirmada sin cambios el 07/10/2026.** |
 | 9 | **Legal:** ¿quién revisa los textos, quién es el responsable del tratamiento de datos y qué correo de soporte se publica? | Es imprescindible para el piloto con datos reales. No redacto textos legales definitivos ni invento al responsable: integro lo que entregue tu asesoría. |
 
 Al aprobar este plan empieza **solo la fase A**, que no tiene costo. Las fases C, D y E necesitan cada una la confirmación del propietario en su momento.

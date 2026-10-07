@@ -24,9 +24,9 @@
 -- grados                   14        3 de Inicial + 6 de Primaria + 5 de Secundaria
 -- relaciones_nivel_grado   14        cada grado enlazado con su nivel
 -- grados_sin_nivel         0         ningún grado queda sin nivel (el onboarding lo exige)
--- fuente_catalogo          preliminar-pendiente-revision
---                                    etiqueta source del catálogo. Si el propietario confirma
---                                    la lista con otra etiqueta, se espera esa etiqueta
+-- fuente_catalogo          confirmado-propietario-2026-10-07
+--                                    etiqueta source de todo el catálogo de Perú: la lista que
+--                                    el propietario confirmó el 07/10/2026 (decisión 8)
 -- precios_activos          individual PE PEN 1990/month
 --                                    único precio activo que crean las migraciones (precio de
 --                                    prueba de la etapa 5; Planes está oculto en producción y
